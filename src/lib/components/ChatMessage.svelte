@@ -2,6 +2,7 @@
   import { onMount } from 'svelte';
   import type { Message, MediaItem } from '$lib/types';
   import Markdown from './Markdown.svelte';
+  import ImageModal from './ImageModal.svelte';
   
   export let message: Message;
   export let isStreaming = false;
@@ -15,6 +16,11 @@
   
   // Class for message container
   $: messageClass = `message ${message.role}`;
+  
+  // Image modal state
+  let showImageModal = false;
+  let modalImageUrl = '';
+  let modalAltText = '';
   
   // Auto scroll to bottom when content changes and scrollToBottom is true
   let container: HTMLDivElement;
@@ -40,10 +46,15 @@
     return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + ' ' + sizes[i];
   }
 
-  function openImagePreview(imageUrl: string) {
-    // Open image in a new tab for now
-    // In a future enhancement, this could be a modal overlay
-    window.open(imageUrl, '_blank');
+  function openImagePreview(imageUrl: string, altText: string = 'Preview image') {
+    // Instead of opening in a new tab, show the modal
+    modalImageUrl = imageUrl;
+    modalAltText = altText;
+    showImageModal = true;
+  }
+  
+  function closeImageModal() {
+    showImageModal = false;
   }
 </script>
 
@@ -63,13 +74,13 @@
                 class="media-preview-button"
                 on:click={() => {
                   if (!media.preview) return;
-                  openImagePreview(media.preview);
+                  openImagePreview(media.preview, `Image ${i + 1}`);
                 }}
                 on:keydown={(e) => {
                   if (e.key === 'Enter' || e.key === ' ') {
                     e.preventDefault();
                     if (!media.preview) return;
-                    openImagePreview(media.preview);
+                    openImagePreview(media.preview, `Image ${i + 1}`);
                   }
                 }}
               >
@@ -131,13 +142,13 @@
                 class="media-preview-button"
                 on:click={() => {
                   if (!media.preview) return;
-                  openImagePreview(media.preview);
+                  openImagePreview(media.preview, `Generated image ${i + 1}`);
                 }}
                 on:keydown={(e) => {
                   if (e.key === 'Enter' || e.key === ' ') {
                     e.preventDefault();
                     if (!media.preview) return;
-                    openImagePreview(media.preview);
+                    openImagePreview(media.preview, `Generated image ${i + 1}`);
                   }
                 }}
               >
@@ -146,6 +157,7 @@
                   alt="Generated image {i + 1}"
                   class="media-preview assistant-image"
                 />
+                <div class="image-caption">Click to view full size</div>
               </button>
             {:else if media.type === 'audio'}
               <audio controls src={media.preview} class="media-preview">
@@ -188,6 +200,14 @@
     <div class="timestamp">{formattedTime}</div>
   {/if}
 </div>
+
+<!-- Image Modal Component -->
+<ImageModal 
+  imageUrl={modalImageUrl} 
+  altText={modalAltText} 
+  isOpen={showImageModal} 
+  on:close={closeImageModal} 
+/>
 
 <style lang="scss">
   .message {
@@ -251,6 +271,24 @@
     :global(p:last-child) {
       margin-bottom: 0;
     }
+    
+    // Improved error message styling
+    :global(p:first-child:has-text("Error:")) {
+      color: var(--error-color, #dc3545);
+      font-weight: 500;
+      background-color: rgba(220, 53, 69, 0.1);
+      padding: 0.75rem;
+      border-radius: 8px;
+      border-left: 4px solid var(--error-color, #dc3545);
+      white-space: pre-wrap;
+    }
+    
+    // Special styling for API errors
+    :global(p:first-child:has-text("Google API error")) {
+      white-space: pre-wrap;
+      font-family: var(--font-mono);
+      font-size: 0.9rem;
+    }
   }
   
   .system-message {
@@ -279,6 +317,9 @@
       padding: 0;
       cursor: pointer;
       max-width: 200px;
+      border-radius: 8px;
+      overflow: hidden;
+      position: relative;
       
       &:focus {
         outline: 2px solid var(--accent-color);
@@ -288,6 +329,31 @@
       img {
         max-width: 100%;
         border-radius: 8px;
+        transition: transform 0.2s ease;
+      }
+      
+      .image-caption {
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        background: rgba(0, 0, 0, 0.7);
+        color: white;
+        font-size: 0.8rem;
+        padding: 4px 8px;
+        text-align: center;
+        transform: translateY(100%);
+        transition: transform 0.2s ease;
+      }
+      
+      &:hover {
+        img {
+          transform: scale(1.03);
+        }
+        
+        .image-caption {
+          transform: translateY(0);
+        }
       }
     }
     
@@ -298,67 +364,105 @@
     
     .document-file {
       background-color: var(--highlight-bg);
-      padding: 0.5rem;
-      border-radius: 4px;
-      font-size: 0.85rem;
+      padding: 0.75rem;
+      border-radius: 8px;
       display: flex;
-      flex-direction: column;
+      align-items: center;
       cursor: pointer;
+      transition: background-color 0.2s;
+      
+      &:hover {
+        background-color: var(--highlight-hover);
+      }
       
       &:focus {
         outline: 2px solid var(--accent-color);
         outline-offset: 2px;
       }
       
-      .file-name {
-        font-weight: 500;
-        word-break: break-all;
+      .file-icon {
+        font-size: 2rem;
+        margin-right: 0.75rem;
       }
       
-      .file-size {
-        font-size: 0.75rem;
-        opacity: 0.7;
+      .file-info {
+        flex: 1;
+        
+        .file-name {
+          font-weight: 600;
+          margin-bottom: 0.25rem;
+        }
+        
+        .file-size {
+          font-size: 0.8rem;
+          color: color-mix(in srgb, var(--text-color) 70%, transparent);
+          margin-bottom: 0.25rem;
+        }
+        
+        .document-status {
+          font-size: 0.8rem;
+          
+          &.success {
+            color: var(--success-color);
+          }
+          
+          &.error {
+            color: var(--error-color);
+          }
+          
+          &.info {
+            color: var(--info-color);
+          }
+        }
       }
+    }
+  }
+  
+  .assistant-media {
+    margin-top: 1rem;
+    
+    .assistant-image {
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
     }
   }
   
   .thinking {
     margin-top: 1rem;
-    border-top: 1px dashed var(--border-color);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
     
     summary {
-      margin-top: 0.5rem;
+      padding: 0.5rem 1rem;
       cursor: pointer;
-      color: var(--accent-color);
-      font-size: 0.85rem;
+      user-select: none;
       
-      &:focus {
-        outline: none;
+      &:hover {
+        background-color: var(--highlight-bg);
       }
     }
     
     .thinking-content {
-      margin-top: 0.5rem;
-      padding: 0.5rem;
+      padding: 1rem;
       background-color: var(--highlight-bg);
-      border-radius: 8px;
+      border-top: 1px solid var(--border-color);
       font-size: 0.9rem;
+      overflow-x: auto;
     }
   }
   
   .typing-indicator {
-    display: inline-flex;
-    align-items: center;
+    display: flex;
+    justify-content: flex-start;
     margin-top: 0.5rem;
     
     span {
-      display: inline-block;
-      width: 6px;
-      height: 6px;
+      width: 8px;
+      height: 8px;
+      margin: 0 2px;
       background-color: var(--accent-color);
       border-radius: 50%;
-      margin: 0 2px;
-      animation: typing 1.4s infinite ease-in-out both;
+      opacity: 0.6;
+      animation: typing 1.5s infinite ease-in-out;
       
       &:nth-child(1) {
         animation-delay: 0s;
@@ -375,85 +479,12 @@
   }
   
   @keyframes typing {
-    0%, 100% {
-      transform: scale(0.75);
-      opacity: 0.5;
+    0%, 60%, 100% {
+      transform: translateY(0);
     }
     
-    50% {
-      transform: scale(1);
-      opacity: 1;
+    30% {
+      transform: translateY(-6px);
     }
-  }
-  
-  .file-icon {
-    font-size: 1.5rem;
-    margin-right: 10px;
-  }
-  
-  .file-info {
-    display: flex;
-    flex-direction: column;
-  }
-  
-  .file-status {
-    margin-top: 5px;
-    font-size: 0.8rem;
-  }
-  
-  .document-status {
-    padding: 2px 5px;
-    border-radius: 4px;
-  }
-  
-  .document-status.success {
-    background-color: rgba(25, 135, 84, 0.1);
-    color: var(--success-color, #198754);
-  }
-  
-  .document-status.error {
-    background-color: rgba(220, 53, 69, 0.1);
-    color: var(--error-color, #dc3545);
-  }
-  
-  .document-status.info {
-    background-color: rgba(13, 110, 253, 0.1);
-    color: var(--info-color, #0d6efd);
-  }
-  
-  .assistant-media {
-    margin-top: 1rem;
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.75rem;
-    max-width: 100%;
-    justify-content: flex-start;
-  }
-  
-  .assistant-image {
-    border-radius: 8px;
-    object-fit: contain;
-    max-width: 100%;
-    max-height: 400px;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-  }
-  
-  .media-preview-button {
-    position: relative;
-  }
-  
-  .media-preview-button:hover::after {
-    content: "Click to view full size";
-    position: absolute;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    background-color: rgba(0, 0, 0, 0.7);
-    color: white;
-    padding: 4px;
-    font-size: 0.75rem;
-    text-align: center;
-    border-bottom-left-radius: 8px;
-    border-bottom-right-radius: 8px;
   }
 </style> 

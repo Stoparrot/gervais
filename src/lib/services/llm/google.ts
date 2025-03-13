@@ -173,6 +173,43 @@ function getApiKey(): string {
   return apiKey;
 }
 
+// Helper function to extract detailed error message from API response
+function extractErrorDetails(error: any): string {
+  // Check if it's a structured error response from Google API
+  if (error?.error) {
+    const googleError = error.error;
+    let detailedMessage = googleError.message || 'Unknown Google API error';
+    
+    // Add error code if available
+    if (googleError.code) {
+      detailedMessage = `[${googleError.code}] ${detailedMessage}`;
+    }
+    
+    // Add field violations if available
+    if (googleError.details && googleError.details.length > 0) {
+      const violations = googleError.details
+        .filter(detail => detail['@type'] && detail['@type'].includes('BadRequest'))
+        .flatMap(detail => detail.fieldViolations || [])
+        .map(violation => `- ${violation.field}: ${violation.description}`)
+        .join('\n');
+      
+      if (violations) {
+        detailedMessage += '\n\nDetails:\n' + violations;
+      }
+    }
+    
+    return detailedMessage;
+  }
+  
+  // If it's a standard error object
+  if (error instanceof Error) {
+    return error.message;
+  }
+  
+  // Fallback
+  return String(error);
+}
+
 // Streaming completion API with multimodal support
 export async function streamCompletion(
   modelId: string,
@@ -251,15 +288,24 @@ export async function streamCompletion(
     });
     
     if (!response.ok) {
-      let errorMessage = `Status code: ${response.status}`;
+      let errorData;
       try {
-        const error = await response.json();
-        errorMessage = error.error?.message || errorMessage;
+        errorData = await response.json();
       } catch (e) {
         // If JSON parsing fails, use status text
-        errorMessage = response.statusText || errorMessage;
+        throw new Error(`Google API error: ${response.statusText || response.status}`);
       }
-      throw new Error(`Google API error: ${errorMessage}`);
+      
+      const detailedError = extractErrorDetails(errorData);
+      
+      // Provide helpful message for specific error cases
+      if (shouldRequestImageGeneration && detailedError.includes('responseModalities')) {
+        throw new Error(`Failed to generate image: The model doesn't support the requested image generation features.\n\nAPI Error: ${detailedError}`);
+      } else if (detailedError.includes('rate limit')) {
+        throw new Error(`Rate limit exceeded: Please try again later or reduce the frequency of requests.\n\nAPI Error: ${detailedError}`);
+      } else {
+        throw new Error(`Google API error: ${detailedError}`);
+      }
     }
     
     const reader = response.body?.getReader();
@@ -498,8 +544,24 @@ export async function completion(modelId: string, messages: Message[]): Promise<
     });
     
     if (!response.ok) {
-      const error = await response.json();
-      throw new Error(`Google API error: ${error.error?.message || response.statusText}`);
+      let errorData;
+      try {
+        errorData = await response.json();
+      } catch (e) {
+        // If JSON parsing fails, use status text
+        throw new Error(`Google API error: ${response.statusText || response.status}`);
+      }
+      
+      const detailedError = extractErrorDetails(errorData);
+      
+      // Provide helpful message for specific error cases
+      if (shouldRequestImageGeneration && detailedError.includes('responseModalities')) {
+        throw new Error(`Failed to generate image: The model doesn't support the requested image generation features.\n\nAPI Error: ${detailedError}`);
+      } else if (detailedError.includes('rate limit')) {
+        throw new Error(`Rate limit exceeded: Please try again later or reduce the frequency of requests.\n\nAPI Error: ${detailedError}`);
+      } else {
+        throw new Error(`Google API error: ${detailedError}`);
+      }
     }
     
     const data: GoogleCompletionResponse = await response.json();
@@ -617,8 +679,24 @@ export class GoogleService implements LLMService {
     });
     
     if (!response.ok) {
-      const error = await response.json();
-      throw new Error(`Google API error: ${error.error?.message || response.statusText}`);
+      let errorData;
+      try {
+        errorData = await response.json();
+      } catch (e) {
+        // If JSON parsing fails, use status text
+        throw new Error(`Google API error: ${response.statusText || response.status}`);
+      }
+      
+      const detailedError = extractErrorDetails(errorData);
+      
+      // Provide helpful message for specific error cases
+      if (shouldRequestImageGeneration && detailedError.includes('responseModalities')) {
+        throw new Error(`Failed to generate image: The model doesn't support the requested image generation features.\n\nAPI Error: ${detailedError}`);
+      } else if (detailedError.includes('rate limit')) {
+        throw new Error(`Rate limit exceeded: Please try again later or reduce the frequency of requests.\n\nAPI Error: ${detailedError}`);
+      } else {
+        throw new Error(`Google API error: ${detailedError}`);
+      }
     }
     
     if (options.stream) {
