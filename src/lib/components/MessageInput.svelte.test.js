@@ -1,17 +1,21 @@
 import { render, fireEvent } from '@testing-library/svelte';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import MessageInput from './MessageInput.svelte';
-import { chatStore, activeChat } from '$lib/stores/chatStore';
 
 // Mock the chatStore
 vi.mock('$lib/stores/chatStore', () => {
-  const { writable } = require('svelte/store');
-  
-  const mockActiveChat = writable({
-    id: 'chat1',
-    messages: [],
-    model: { id: 'gpt-4', name: 'GPT-4' }
-  });
+  // Use a simple mock without requiring svelte/store
+  const mockActiveChat = {
+    subscribe: vi.fn(callback => {
+      callback({
+        id: 'chat1',
+        messages: [],
+        model: { id: 'gpt-4', name: 'GPT-4' }
+      });
+      return () => {};
+    }),
+    set: vi.fn()
+  };
   
   return {
     chatStore: {
@@ -95,11 +99,14 @@ Object.defineProperty(global, 'FileReader', {
   }
 });
 
+// Import after mocks are defined
+import { chatStore, activeChat } from '$lib/stores/chatStore';
+
 describe('MessageInput Component', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     
-    // Reset activeChat to default state
+    // Reset activeChat to default state (use the mock's set method)
     activeChat.set({
       id: 'chat1',
       messages: [],

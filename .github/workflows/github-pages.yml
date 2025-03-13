@@ -34,6 +34,8 @@ jobs:
       
       - name: Run tests
         run: npm run test:unit -- --run
+        env:
+          NODE_OPTIONS: --experimental-vm-modules
         
       - name: Copy static config
         run: cp svelte.config.static.js svelte.config.js

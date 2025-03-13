@@ -1,14 +1,17 @@
 import { render, fireEvent } from '@testing-library/svelte';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import Sidebar from './Sidebar.svelte';
-import { chatStore, activeChat } from '$lib/stores/chatStore';
-import { allModelsStore, localModelsStore } from '$lib/services/llm/models';
 
 // Mock stores
 vi.mock('$lib/stores/chatStore', () => {
-  const { writable } = require('svelte/store');
-  
-  const mockActiveChat = writable(null);
+  // Use a simple mock without requiring svelte/store
+  const mockActiveChat = {
+    subscribe: vi.fn(callback => {
+      callback(null);
+      return () => {};
+    }),
+    set: vi.fn()
+  };
   
   const mockChatStore = {
     subscribe: vi.fn(),
@@ -26,25 +29,37 @@ vi.mock('$lib/stores/chatStore', () => {
 });
 
 vi.mock('$lib/services/llm/models', () => {
-  const { writable } = require('svelte/store');
+  // Use a simple mock without requiring svelte/store
+  const mockLocalModelsStore = {
+    subscribe: vi.fn(callback => {
+      callback([]);
+      return () => {};
+    }),
+    set: vi.fn()
+  };
   
-  const mockLocalModelsStore = writable([]);
-  const mockAllModelsStore = writable([
-    {
-      id: 'gpt-4',
-      name: 'GPT-4',
-      provider: 'openai',
-      description: 'Most powerful model',
-      isLocal: false
-    },
-    {
-      id: 'claude-3-5-sonnet',
-      name: 'Claude 3.5 Sonnet',
-      provider: 'anthropic',
-      description: 'Powerful and balanced model',
-      isLocal: false
-    }
-  ]);
+  const mockAllModelsStore = {
+    subscribe: vi.fn(callback => {
+      callback([
+        {
+          id: 'gpt-4',
+          name: 'GPT-4',
+          provider: 'openai',
+          description: 'Most powerful model',
+          isLocal: false
+        },
+        {
+          id: 'claude-3-5-sonnet',
+          name: 'Claude 3.5 Sonnet',
+          provider: 'anthropic',
+          description: 'Powerful and balanced model',
+          isLocal: false
+        }
+      ]);
+      return () => {};
+    }),
+    set: vi.fn()
+  };
   
   return {
     allModelsStore: mockAllModelsStore,
@@ -99,6 +114,10 @@ vi.mock('lucide-svelte', () => {
     }))
   };
 });
+
+// Import after mocks are defined
+import { chatStore, activeChat } from '$lib/stores/chatStore';
+import { allModelsStore, localModelsStore } from '$lib/services/llm/models';
 
 describe('Sidebar Component', () => {
   beforeEach(() => {
