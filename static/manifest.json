@@ -1,0 +1,23 @@
+{
+  "name": "LLM Chat App",
+  "short_name": "Chat App",
+  "description": "A versatile chat interface for LLMs",
+  "start_url": "/gervais/",
+  "display": "standalone",
+  "background_color": "#1a1a1a",
+  "theme_color": "#1a1a1a",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "favicon.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "apple-touch-icon.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+} 

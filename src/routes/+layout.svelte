@@ -115,5 +115,10 @@
     min-height: 100vh;
     background-color: var(--bg-color);
     color: var(--text-color);
+    padding-top: var(--sat);
+    padding-bottom: var(--sab);
+    padding-left: var(--sal);
+    padding-right: var(--sar);
+    position: relative;
   }
 </style> 

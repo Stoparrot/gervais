@@ -3,7 +3,17 @@
 	<head>
 		<meta charset="utf-8" />
 		<link rel="icon" href="%sveltekit.assets%/favicon.png" />
-		<meta name="viewport" content="width=device-width, initial-scale=1" />
+		<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+		<meta name="apple-mobile-web-app-capable" content="yes" />
+		<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+		<meta name="apple-mobile-web-app-title" content="LLM Chat App" />
+		<meta name="theme-color" content="#1a1a1a" media="(prefers-color-scheme: dark)" />
+		<meta name="theme-color" content="#f9f9f9" media="(prefers-color-scheme: light)" />
+		<!-- PWA manifest -->
+		<link rel="manifest" href="%sveltekit.assets%/manifest.json" />
+		<!-- iOS icon -->
+		<link rel="apple-touch-icon" href="%sveltekit.assets%/apple-touch-icon.png" />
+		<!-- Theme color for browser UI -->
 		%sveltekit.head%
 	</head>
 	<body data-sveltekit-preload-data="hover">

@@ -237,10 +237,12 @@
 
 <style lang="scss">
   .message-input-container {
-    width: 100%;
-    border: 1px solid var(--border-color);
+    position: relative;
     border-radius: 8px;
     background-color: var(--input-bg);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    margin-bottom: var(--sab, 0px); /* Add margin to account for iOS bottom bar */
+    width: 100%;
     display: flex;
     flex-direction: column;
     overflow: hidden;

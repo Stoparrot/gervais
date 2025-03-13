@@ -636,9 +636,14 @@
   .input-container {
     padding: 1rem;
     border-top: 1px solid var(--border-color);
+    padding-bottom: calc(1rem + var(--sab));
+    position: relative;
+    z-index: 10;
+    background-color: var(--bg-color);
     
     @media (min-width: 768px) {
       padding: 1.5rem 2rem;
+      padding-bottom: calc(1.5rem + var(--sab));
     }
   }
   
