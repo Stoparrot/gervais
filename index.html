@@ -3,12 +3,22 @@
 	<head>
 		<meta charset="utf-8" />
 		<link rel="icon" href="/gervais/favicon.png" />
-		<meta name="viewport" content="width=device-width, initial-scale=1" />
+		<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+		<meta name="apple-mobile-web-app-capable" content="yes" />
+		<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+		<meta name="apple-mobile-web-app-title" content="LLM Chat App" />
+		<meta name="theme-color" content="#1a1a1a" media="(prefers-color-scheme: dark)" />
+		<meta name="theme-color" content="#f9f9f9" media="(prefers-color-scheme: light)" />
+		<!-- PWA manifest -->
+		<link rel="manifest" href="/gervais/manifest.json" />
+		<!-- iOS icon -->
+		<link rel="apple-touch-icon" href="/gervais/apple-touch-icon.png" />
+		<!-- Theme color for browser UI -->
 		
-		<link rel="modulepreload" href="/gervais/_app/immutable/entry/start.D3o5KTRV.js">
-		<link rel="modulepreload" href="/gervais/_app/immutable/chunks/1S8guVpQ.js">
+		<link rel="modulepreload" href="/gervais/_app/immutable/entry/start.wMGUApwG.js">
+		<link rel="modulepreload" href="/gervais/_app/immutable/chunks/B3ndrMNC.js">
 		<link rel="modulepreload" href="/gervais/_app/immutable/chunks/BSv_i5Hy.js">
-		<link rel="modulepreload" href="/gervais/_app/immutable/entry/app.M9hQs3vE.js">
+		<link rel="modulepreload" href="/gervais/_app/immutable/entry/app.Cj53JHaR.js">
 		<link rel="modulepreload" href="/gervais/_app/immutable/chunks/YMX71UVP.js">
 		<link rel="modulepreload" href="/gervais/_app/immutable/chunks/Bl1F-iLh.js">
 		<link rel="modulepreload" href="/gervais/_app/immutable/chunks/D9u51XOd.js">
@@ -20,7 +30,7 @@
 		<div style="display: contents">
 			<script>
 				{
-					__sveltekit_ft4ago = {
+					__sveltekit_ys3v21 = {
 						base: "/gervais",
 						assets: "/gervais"
 					};
@@ -28,8 +38,8 @@
 					const element = document.currentScript.parentElement;
 
 					Promise.all([
-						import("/gervais/_app/immutable/entry/start.D3o5KTRV.js"),
-						import("/gervais/_app/immutable/entry/app.M9hQs3vE.js")
+						import("/gervais/_app/immutable/entry/start.wMGUApwG.js"),
+						import("/gervais/_app/immutable/entry/app.Cj53JHaR.js")
 					]).then(([kit, app]) => {
 						kit.start(app, element);
 					});
