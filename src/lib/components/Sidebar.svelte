@@ -90,7 +90,7 @@
 <aside class="sidebar" class:expanded={isExpanded}>
   <div class="sidebar-header">
     <div class="logo-container">
-      <img src="/logo.svg" alt="Gervais Logo" class="logo" />
+      <img src="{import.meta.env.DEV ? '/logo.svg' : '/gervais/logo.svg'}" alt="Gervais Logo" class="logo" />
       <h2>Gervais</h2>
     </div>
     
