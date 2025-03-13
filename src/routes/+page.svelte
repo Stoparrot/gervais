@@ -225,10 +225,11 @@
         await googleService.streamCompletion(
           modelId,
           messages,
-          // On chunk handler
-          (text) => {
+          // On chunk handler - updated to handle both text and media
+          (text, media) => {
             chatStore.updateMessage($activeChat.id, assistantMessageId, {
               content: text,
+              media: media, // Add received media items to the message
             });
           },
           // On complete handler

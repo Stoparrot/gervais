@@ -4,8 +4,10 @@
   import MicIcon from 'lucide-svelte/icons/mic';
   import CameraIcon from 'lucide-svelte/icons/camera';
   import Paperclip from 'lucide-svelte/icons/paperclip';
+  import ImageIcon from 'lucide-svelte/icons/image';
   import Button from './Button.svelte';
   import type { MediaItem } from '$lib/types';
+  import { activeChat } from '$lib/stores/chatStore';
   
   export let value = '';
   export let placeholder = 'Send a message...';
@@ -93,6 +95,20 @@
   function toggleTool(tool: string) {
     const newState = !tools[tool];
     dispatch('toggleTool', { tool, enabled: newState });
+  }
+  
+  // Test image generation
+  function testImageGeneration() {
+    if (disabled) return;
+    
+    if ($activeChat?.model?.provider !== 'google' || !$activeChat?.model?.supportsImageGeneration) {
+      alert('Please select a Google Gemini model that supports image generation');
+      return;
+    }
+    
+    // Set a prompt that explicitly requests image generation using Gemini syntax
+    value = 'Generate an image of a fluffy sheep standing in a green meadow with flowers. Make sure to include an image in your response.';
+    handleSubmit();
   }
   
   // Update textarea height when value changes
@@ -193,6 +209,18 @@
           <CameraIcon size={18} />
         </div>
       </Button>
+      
+      {#if $activeChat?.model?.provider === 'google' && $activeChat?.model?.supportsImageGeneration}
+        <Button
+          variant="icon"
+          size="sm"
+          disabled={disabled}
+          on:click={testImageGeneration}
+          aria-label="Test image generation"
+        >
+          <ImageIcon size={18} />
+        </Button>
+      {/if}
       
       <Button
         variant="icon"

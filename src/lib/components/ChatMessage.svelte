@@ -102,8 +102,10 @@
                     {:else if media.preview}
                       {#if message.role === 'user'}
                         <span class="document-status info">Document attached</span>
-                      {:else}
+                      {:else if message.role === 'assistant'}
                         <span class="document-status success">Document processed</span>
+                      {:else}
+                        <span class="document-status info">Document</span>
                       {/if}
                     {:else}
                       <span class="document-status error">Failed to process document</span>
@@ -119,6 +121,45 @@
   {:else if message.role === 'assistant'}
     <div class="content">
       <Markdown content={message.content} {scrollToBottom} />
+      
+      {#if message.media && message.media.length > 0}
+        <div class="media-container assistant-media">
+          {#each message.media as media, i}
+            {#if media.type === 'image'}
+              <button
+                type="button"
+                class="media-preview-button"
+                on:click={() => {
+                  if (!media.preview) return;
+                  openImagePreview(media.preview);
+                }}
+                on:keydown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    if (!media.preview) return;
+                    openImagePreview(media.preview);
+                  }
+                }}
+              >
+                <img
+                  src={media.preview}
+                  alt="Generated image {i + 1}"
+                  class="media-preview assistant-image"
+                />
+              </button>
+            {:else if media.type === 'audio'}
+              <audio controls src={media.preview} class="media-preview">
+                Your browser does not support the audio element.
+              </audio>
+            {:else if media.type === 'video'}
+              <video controls src={media.preview} class="media-preview">
+                <track kind="captions" src="" label="English captions" />
+                Your browser does not support the video element.
+              </video>
+            {/if}
+          {/each}
+        </div>
+      {/if}
       
       {#if message.thinking}
         <details class="thinking">
@@ -378,5 +419,41 @@
   .document-status.info {
     background-color: rgba(13, 110, 253, 0.1);
     color: var(--info-color, #0d6efd);
+  }
+  
+  .assistant-media {
+    margin-top: 1rem;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    max-width: 100%;
+    justify-content: flex-start;
+  }
+  
+  .assistant-image {
+    border-radius: 8px;
+    object-fit: contain;
+    max-width: 100%;
+    max-height: 400px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  }
+  
+  .media-preview-button {
+    position: relative;
+  }
+  
+  .media-preview-button:hover::after {
+    content: "Click to view full size";
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background-color: rgba(0, 0, 0, 0.7);
+    color: white;
+    padding: 4px;
+    font-size: 0.75rem;
+    text-align: center;
+    border-bottom-left-radius: 8px;
+    border-bottom-right-radius: 8px;
   }
 </style> 

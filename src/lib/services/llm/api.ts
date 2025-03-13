@@ -50,7 +50,7 @@ export interface LLMService {
       temperature?: number;
       maxTokens?: number;
     }
-  ): Promise<ReadableStream<Uint8Array> | string>;
+  ): Promise<ReadableStream<Uint8Array> | string | { text: string, media: MediaItem[] }>;
   
   formatMessages(messages: Message[]): ApiMessage[];
   

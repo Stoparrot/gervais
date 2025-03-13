@@ -35,6 +35,8 @@ export interface LLMModel {
   supportsTools?: boolean;
   supportsFiles?: boolean;
   supportsStreaming?: boolean;
+  supportsMultimodal?: boolean;
+  supportsImageGeneration?: boolean;
 }
 
 // Tool Types

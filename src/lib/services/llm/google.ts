@@ -2,6 +2,7 @@ import { settingsStore } from '$lib/stores/settingsStore';
 import { get } from 'svelte/store';
 import type { Message, MediaItem, LLMModel } from '$lib/types';
 import type { LLMService, ApiTool, ApiMessage, ApiMessageContent } from './api';
+import { v4 as uuidv4 } from 'uuid';
 
 // Define Google API types
 interface GoogleMessage {
@@ -20,11 +21,14 @@ interface GoogleCompletionRequest {
   generationConfig?: {
     temperature?: number;
     maxOutputTokens?: number;
+    // Add response modalities for image generation
+    responseModalities?: string[];
   };
   safetySettings?: {
     category: string;
     threshold: string;
   }[];
+  tools?: any[];
   stream?: boolean;
 }
 
@@ -32,7 +36,11 @@ interface GoogleCompletionResponse {
   candidates: {
     content: {
       parts: {
-        text: string;
+        text?: string;
+        inlineData?: {
+          mimeType: string;
+          data: string;
+        };
       }[];
     };
     finishReason: string;
@@ -43,7 +51,11 @@ interface GoogleStreamChunk {
   candidates: {
     content: {
       parts: {
-        text: string;
+        text?: string;
+        inlineData?: {
+          mimeType: string;
+          data: string;
+        };
       }[];
     };
     finishReason?: string;
@@ -62,12 +74,19 @@ export const googleModels = [
     supportsStreaming: true,
     supportsFiles: true,
     supportsThinking: true,
+    supportsMultimodal: true, // For accepting images as input
+    supportsImageGeneration: true, // Also supports generating images
   }
 ];
 
 // Convert file data URL to base64
 function dataURLToBase64(dataURL: string): string {
   return dataURL.split(',')[1];
+}
+
+// Convert base64 to data URL
+function base64ToDataURL(base64: string, mimeType: string): string {
+  return `data:${mimeType};base64,${base64}`;
 }
 
 // Get media type from data URL
@@ -116,6 +135,21 @@ function convertToGoogleMessages(messages: Message[]): GoogleMessage[] {
     .filter((message): message is GoogleMessage => message !== null);
 }
 
+// Create a MediaItem from Google's inlineData response
+function createMediaItemFromInlineData(inlineData: { mimeType: string; data: string }): MediaItem {
+  const mediaType = inlineData.mimeType.startsWith('image/') ? 'image' : 'document';
+  const preview = base64ToDataURL(inlineData.data, inlineData.mimeType);
+  
+  return {
+    id: uuidv4(),
+    type: mediaType,
+    name: `${mediaType}_${new Date().getTime()}`,
+    preview,
+    timestamp: Date.now(),
+    size: inlineData.data.length * 0.75, // Approximate size in bytes from base64
+  };
+}
+
 // Validate API key
 export async function validateApiKey(apiKey: string): Promise<boolean> {
   try {
@@ -139,11 +173,11 @@ function getApiKey(): string {
   return apiKey;
 }
 
-// Streaming completion API
+// Streaming completion API with multimodal support
 export async function streamCompletion(
   modelId: string,
   messages: Message[],
-  onChunk: (text: string) => void,
+  onChunk: (text: string, media?: MediaItem[]) => void,
   onComplete: () => void,
   onError: (error: Error) => void,
   onThinking?: (thinking: string) => void
@@ -152,8 +186,28 @@ export async function streamCompletion(
     const apiKey = getApiKey();
     const googleMessages = convertToGoogleMessages(messages);
     
+    // Ensure we're using the correct model ID
+    console.log('Using model:', modelId);
+    if (modelId !== 'gemini-2.0-flash-exp') {
+      console.warn('Warning: Expected to use gemini-2.0-flash-exp but got:', modelId);
+    }
+    
     console.log('Sending request to Google Gemini API with model:', modelId);
     console.log('Messages after conversion:', JSON.stringify(googleMessages, null, 2));
+    
+    // Check if we should request image generation based on the prompt
+    const shouldRequestImageGeneration = messages.some(msg => {
+      const content = msg.content.toLowerCase();
+      return (
+        msg.role === 'user' && (
+          content.includes('generate an image') ||
+          content.includes('create an image') ||
+          content.includes('draw') ||
+          content.includes('picture of') ||
+          content.includes('image of')
+        )
+      );
+    });
     
     // Create the request body
     const requestBody = {
@@ -161,6 +215,7 @@ export async function streamCompletion(
       generationConfig: {
         temperature: 0.7,
         maxOutputTokens: 2048,
+        responseModalities: shouldRequestImageGeneration ? ['TEXT', 'IMAGE'] : ['TEXT'],
       },
       safetySettings: [
         {
@@ -182,8 +237,12 @@ export async function streamCompletion(
       ]
     };
     
+    // Log the complete URL for debugging
+    const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${modelId}:streamGenerateContent?key=${apiKey}`;
+    console.log('API URL (without key):', apiUrl.replace(apiKey, 'API_KEY_HIDDEN'));
+    
     // Use the streamGenerateContent endpoint which specifically handles streaming
-    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${modelId}:streamGenerateContent?key=${apiKey}`, {
+    const response = await fetch(apiUrl, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -209,6 +268,7 @@ export async function streamCompletion(
     const decoder = new TextDecoder('utf-8');
     let buffer = '';
     let responseText = '';
+    let mediaItems: MediaItem[] = [];
     
     console.log('Starting to read the stream...');
     
@@ -285,11 +345,29 @@ export async function streamCompletion(
               return '';
             }
             
-            if (item.candidates?.[0]?.content?.parts?.[0]?.text) {
-              const text = item.candidates[0].content.parts[0].text;
-              console.log('Extracted text from array item:', text);
-              responseText += text;
-              onChunk(responseText);
+            if (item.candidates?.[0]?.content?.parts) {
+              const parts = item.candidates[0].content.parts;
+              let newText = '';
+              const newMediaItems: MediaItem[] = [];
+              
+              // Process each part, which could be text or image
+              for (const part of parts) {
+                if (part.text) {
+                  newText += part.text;
+                } else if (part.inlineData) {
+                  // Handle image data
+                  const mediaItem = createMediaItemFromInlineData(part.inlineData);
+                  newMediaItems.push(mediaItem);
+                  mediaItems.push(mediaItem);
+                }
+              }
+              
+              if (newText) {
+                responseText += newText;
+              }
+              
+              // Notify the caller with both text and any media items
+              onChunk(responseText, mediaItems);
             }
             
             if (item.candidates?.[0]?.finishReason === 'STOP') {
@@ -307,11 +385,29 @@ export async function streamCompletion(
             return '';
           }
           
-          if (jsonData.candidates?.[0]?.content?.parts?.[0]?.text) {
-            const text = jsonData.candidates[0].content.parts[0].text;
-            console.log('Extracted text from single object:', text);
-            responseText += text;
-            onChunk(responseText);
+          if (jsonData.candidates?.[0]?.content?.parts) {
+            const parts = jsonData.candidates[0].content.parts;
+            let newText = '';
+            const newMediaItems: MediaItem[] = [];
+            
+            // Process each part, which could be text or image
+            for (const part of parts) {
+              if (part.text) {
+                newText += part.text;
+              } else if (part.inlineData) {
+                // Handle image data
+                const mediaItem = createMediaItemFromInlineData(part.inlineData);
+                newMediaItems.push(mediaItem);
+                mediaItems.push(mediaItem);
+              }
+            }
+            
+            if (newText) {
+              responseText += newText;
+            }
+            
+            // Notify the caller with both text and any media items
+            onChunk(responseText, mediaItems);
           }
           
           if (jsonData.candidates?.[0]?.finishReason === 'STOP') {
@@ -332,14 +428,34 @@ export async function streamCompletion(
   }
 }
 
-// Non-streaming completion API
-export async function completion(modelId: string, messages: Message[]): Promise<string> {
+// Non-streaming completion API with multimodal support
+export async function completion(modelId: string, messages: Message[]): Promise<{ text: string, media: MediaItem[] }> {
   try {
     const apiKey = getApiKey();
     const googleMessages = convertToGoogleMessages(messages);
     
+    // Ensure we're using the correct model ID
+    console.log('Using model (non-streaming):', modelId);
+    if (modelId !== 'gemini-2.0-flash-exp') {
+      console.warn('Warning: Expected to use gemini-2.0-flash-exp but got:', modelId);
+    }
+    
     console.log('Sending non-streaming request to Google Gemini API with model:', modelId);
     console.log('Messages after conversion:', JSON.stringify(googleMessages, null, 2));
+    
+    // Check if we should request image generation based on the prompt
+    const shouldRequestImageGeneration = messages.some(msg => {
+      const content = msg.content.toLowerCase();
+      return (
+        msg.role === 'user' && (
+          content.includes('generate an image') ||
+          content.includes('create an image') ||
+          content.includes('draw') ||
+          content.includes('picture of') ||
+          content.includes('image of')
+        )
+      );
+    });
     
     // Create the request body
     const requestBody = {
@@ -347,6 +463,7 @@ export async function completion(modelId: string, messages: Message[]): Promise<
       generationConfig: {
         temperature: 0.7,
         maxOutputTokens: 2048,
+        responseModalities: shouldRequestImageGeneration ? ['TEXT', 'IMAGE'] : ['TEXT'],
       },
       safetySettings: [
         {
@@ -368,7 +485,11 @@ export async function completion(modelId: string, messages: Message[]): Promise<
       ]
     };
     
-    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${modelId}:generateContent?key=${apiKey}`, {
+    // Log the complete URL for debugging
+    const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${modelId}:generateContent?key=${apiKey}`;
+    console.log('API URL (without key):', apiUrl.replace(apiKey, 'API_KEY_HIDDEN'));
+
+    const response = await fetch(apiUrl, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -382,7 +503,22 @@ export async function completion(modelId: string, messages: Message[]): Promise<
     }
     
     const data: GoogleCompletionResponse = await response.json();
-    return data.candidates[0]?.content?.parts[0]?.text || '';
+    let responseText = '';
+    const mediaItems: MediaItem[] = [];
+    
+    // Process parts which could be text or images
+    const parts = data.candidates[0]?.content?.parts || [];
+    for (const part of parts) {
+      if (part.text) {
+        responseText += part.text;
+      } else if (part.inlineData) {
+        // Handle image data
+        const mediaItem = createMediaItemFromInlineData(part.inlineData);
+        mediaItems.push(mediaItem);
+      }
+    }
+    
+    return { text: responseText, media: mediaItems };
   } catch (error) {
     console.error('Google completion error:', error);
     throw error;
@@ -414,18 +550,39 @@ export class GoogleService implements LLMService {
       maxTokens?: number;
       stream?: boolean;
     } = {}
-  ): Promise<ReadableStream<Uint8Array> | string> {
+  ): Promise<ReadableStream<Uint8Array> | { text: string, media: MediaItem[] }> {
     if (!this.apiKey) {
       throw new Error('Google API key is required');
     }
     
+    // Ensure we're using the correct model ID
+    console.log('GoogleService.sendMessage using model:', model.id);
+    if (model.id !== 'gemini-2.0-flash-exp') {
+      console.warn('Warning: Expected to use gemini-2.0-flash-exp but got:', model.id);
+    }
+    
     const googleMessages = convertToGoogleMessages(messages);
+    
+    // Check if we should request image generation based on the prompt
+    const shouldRequestImageGeneration = messages.some(msg => {
+      const content = msg.content.toLowerCase();
+      return (
+        msg.role === 'user' && (
+          content.includes('generate an image') ||
+          content.includes('create an image') ||
+          content.includes('draw') ||
+          content.includes('picture of') ||
+          content.includes('image of')
+        )
+      );
+    });
     
     const request: GoogleCompletionRequest = {
       contents: googleMessages,
       generationConfig: {
         temperature: options.temperature || 0.7,
         maxOutputTokens: options.maxTokens || 2048,
+        responseModalities: shouldRequestImageGeneration ? ['TEXT', 'IMAGE'] : ['TEXT'],
       },
       safetySettings: [
         {
@@ -447,7 +604,11 @@ export class GoogleService implements LLMService {
       ],
     };
     
-    const response = await fetch(`${this.baseUrl}/models/${model.id}:${options.stream ? 'streamGenerateContent' : 'generateContent'}?key=${this.apiKey}`, {
+    // Log the complete URL for debugging
+    const apiUrl = `${this.baseUrl}/models/${model.id}:${options.stream ? 'streamGenerateContent' : 'generateContent'}?key=${this.apiKey}`;
+    console.log('API URL (without key):', apiUrl.replace(this.apiKey, 'API_KEY_HIDDEN'));
+    
+    const response = await fetch(apiUrl, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -464,7 +625,22 @@ export class GoogleService implements LLMService {
       return response.body as ReadableStream<Uint8Array>;
     } else {
       const data: GoogleCompletionResponse = await response.json();
-      return data.candidates[0]?.content?.parts[0]?.text || '';
+      let responseText = '';
+      const mediaItems: MediaItem[] = [];
+      
+      // Process parts which could be text or images
+      const parts = data.candidates[0]?.content?.parts || [];
+      for (const part of parts) {
+        if (part.text) {
+          responseText += part.text;
+        } else if (part.inlineData) {
+          // Handle image data
+          const mediaItem = createMediaItemFromInlineData(part.inlineData);
+          mediaItems.push(mediaItem);
+        }
+      }
+      
+      return { text: responseText, media: mediaItems };
     }
   }
   
