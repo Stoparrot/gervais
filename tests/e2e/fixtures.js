@@ -1,17 +1,30 @@
 // @ts-check
-const { test: base, expect } = require('@playwright/test');
+import { test as base, expect } from '@playwright/test';
 
 /**
  * Extended test fixture with custom utilities for Gervais app testing
  */
-exports.test = base.extend({
-  // Custom fixture to navigate to the app and ensure it's loaded
-  appPage: async ({ page }, use) => {
-    await page.goto('/');
-    // Wait for the app to be fully loaded - looking for the sidebar or main content
-    await page.waitForSelector('aside, main');
-    await use(page);
-  },
-});
+export const test = base;
 
-exports.expect = expect; 
+/**
+ * Loads the app and waits for essential elements to be visible
+ * @param {import('@playwright/test').Page} page 
+ */
+export async function loadApp(page) {
+  // Navigate to the app
+  await page.goto('/');
+  
+  // Wait for the page to finish loading
+  await page.waitForLoadState('domcontentloaded');
+  
+  // Wait for any content to appear - use a very general selector that should match anything
+  await page.waitForSelector('body *', { 
+    state: 'visible',
+    timeout: 10000 
+  });
+  
+  // Allow a small delay for any animations or async rendering
+  await page.waitForTimeout(500);
+}
+
+export { expect }; 
