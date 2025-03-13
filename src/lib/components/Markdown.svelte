@@ -11,10 +11,19 @@
   let parsedContent = '';
   
   onMount(() => {
-    // Configure marked
+    // Configure marked with custom renderer
+    const renderer = new marked.Renderer();
+    
+    // Custom link renderer to add target and rel attributes
+    renderer.link = function({ href, title, text }) {
+      const titleAttr = title ? ` title="${title}"` : '';
+      return `<a href="${href}" target="_blank" rel="noopener noreferrer"${titleAttr}>${text}</a>`;
+    };
+    
     marked.setOptions({
       gfm: true,
-      breaks: true
+      breaks: true,
+      renderer: renderer
     });
     
     // Parse and sanitize the markdown
@@ -34,7 +43,7 @@
       
       // Sanitize HTML to prevent XSS
       parsedContent = DOMPurify.sanitize(htmlContent, {
-        ADD_ATTR: ['target', 'class'],
+        ADD_ATTR: ['target', 'rel', 'class'],
         FORBID_TAGS: ['style', 'iframe', 'canvas', 'input', 'form', 'script'],
       });
       

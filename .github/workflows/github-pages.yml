@@ -31,6 +31,9 @@ jobs:
           
       - name: Install dependencies
         run: npm ci
+      
+      - name: Run tests
+        run: npm run test:unit -- --run
         
       - name: Copy static config
         run: cp svelte.config.static.js svelte.config.js
