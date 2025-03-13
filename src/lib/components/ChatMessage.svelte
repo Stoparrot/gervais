@@ -2,7 +2,6 @@
   import { onMount } from 'svelte';
   import type { Message, MediaItem } from '$lib/types';
   import Markdown from './Markdown.svelte';
-  import ImageModal from './ImageModal.svelte';
   
   export let message: Message;
   export let isStreaming = false;
@@ -47,7 +46,7 @@
   }
 
   function openImagePreview(imageUrl: string, altText: string = 'Preview image') {
-    // Instead of opening in a new tab, show the modal
+    // Show in modal instead of opening in new tab
     modalImageUrl = imageUrl;
     modalAltText = altText;
     showImageModal = true;
@@ -155,7 +154,7 @@
                 <img
                   src={media.preview}
                   alt="Generated image {i + 1}"
-                  class="media-preview assistant-image"
+                  class="media-preview"
                 />
                 <div class="image-caption">Click to view full size</div>
               </button>
@@ -201,13 +200,16 @@
   {/if}
 </div>
 
-<!-- Image Modal Component -->
-<ImageModal 
-  imageUrl={modalImageUrl} 
-  altText={modalAltText} 
-  isOpen={showImageModal} 
-  on:close={closeImageModal} 
-/>
+<!-- Image Modal -->
+{#if showImageModal}
+  <div class="image-modal-overlay" on:click={closeImageModal} on:keydown={(e) => e.key === 'Escape' && closeImageModal()} role="button" tabindex="0">
+    <div class="image-modal-content" on:click|stopPropagation={() => {}}>
+      <button class="close-modal" on:click={closeImageModal}>×</button>
+      <img src={modalImageUrl} alt={modalAltText} />
+      <div class="modal-caption">{modalAltText}</div>
+    </div>
+  </div>
+{/if}
 
 <style lang="scss">
   .message {
@@ -271,24 +273,6 @@
     :global(p:last-child) {
       margin-bottom: 0;
     }
-    
-    // Improved error message styling
-    :global(p:first-child:has-text("Error:")) {
-      color: var(--error-color, #dc3545);
-      font-weight: 500;
-      background-color: rgba(220, 53, 69, 0.1);
-      padding: 0.75rem;
-      border-radius: 8px;
-      border-left: 4px solid var(--error-color, #dc3545);
-      white-space: pre-wrap;
-    }
-    
-    // Special styling for API errors
-    :global(p:first-child:has-text("Google API error")) {
-      white-space: pre-wrap;
-      font-family: var(--font-mono);
-      font-size: 0.9rem;
-    }
   }
   
   .system-message {
@@ -310,6 +294,14 @@
     flex-wrap: wrap;
     gap: 0.5rem;
     margin-top: 0.5rem;
+    
+    &.assistant-media {
+      margin-top: 1rem;
+      
+      img {
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+      }
+    }
     
     .media-preview-button {
       background: none;
@@ -364,105 +356,67 @@
     
     .document-file {
       background-color: var(--highlight-bg);
-      padding: 0.75rem;
-      border-radius: 8px;
+      padding: 0.5rem;
+      border-radius: 4px;
+      font-size: 0.85rem;
       display: flex;
-      align-items: center;
+      flex-direction: column;
       cursor: pointer;
-      transition: background-color 0.2s;
-      
-      &:hover {
-        background-color: var(--highlight-hover);
-      }
       
       &:focus {
         outline: 2px solid var(--accent-color);
         outline-offset: 2px;
       }
       
-      .file-icon {
-        font-size: 2rem;
-        margin-right: 0.75rem;
+      .file-name {
+        font-weight: 500;
+        word-break: break-all;
       }
       
-      .file-info {
-        flex: 1;
-        
-        .file-name {
-          font-weight: 600;
-          margin-bottom: 0.25rem;
-        }
-        
-        .file-size {
-          font-size: 0.8rem;
-          color: color-mix(in srgb, var(--text-color) 70%, transparent);
-          margin-bottom: 0.25rem;
-        }
-        
-        .document-status {
-          font-size: 0.8rem;
-          
-          &.success {
-            color: var(--success-color);
-          }
-          
-          &.error {
-            color: var(--error-color);
-          }
-          
-          &.info {
-            color: var(--info-color);
-          }
-        }
+      .file-size {
+        font-size: 0.75rem;
+        opacity: 0.7;
       }
-    }
-  }
-  
-  .assistant-media {
-    margin-top: 1rem;
-    
-    .assistant-image {
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
     }
   }
   
   .thinking {
     margin-top: 1rem;
-    border: 1px solid var(--border-color);
-    border-radius: 8px;
+    border-top: 1px dashed var(--border-color);
     
     summary {
-      padding: 0.5rem 1rem;
+      margin-top: 0.5rem;
       cursor: pointer;
-      user-select: none;
+      color: var(--accent-color);
+      font-size: 0.85rem;
       
-      &:hover {
-        background-color: var(--highlight-bg);
+      &:focus {
+        outline: none;
       }
     }
     
     .thinking-content {
-      padding: 1rem;
+      margin-top: 0.5rem;
+      padding: 0.5rem;
       background-color: var(--highlight-bg);
-      border-top: 1px solid var(--border-color);
+      border-radius: 8px;
       font-size: 0.9rem;
-      overflow-x: auto;
     }
   }
   
   .typing-indicator {
-    display: flex;
-    justify-content: flex-start;
+    display: inline-flex;
+    align-items: center;
     margin-top: 0.5rem;
     
     span {
-      width: 8px;
-      height: 8px;
-      margin: 0 2px;
+      display: inline-block;
+      width: 6px;
+      height: 6px;
       background-color: var(--accent-color);
       border-radius: 50%;
-      opacity: 0.6;
-      animation: typing 1.5s infinite ease-in-out;
+      margin: 0 2px;
+      animation: typing 1.4s infinite ease-in-out both;
       
       &:nth-child(1) {
         animation-delay: 0s;
@@ -478,13 +432,116 @@
     }
   }
   
-  @keyframes typing {
-    0%, 60%, 100% {
-      transform: translateY(0);
+  /* Image modal styles */
+  .image-modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.85);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    padding: 2rem;
+  }
+  
+  .image-modal-content {
+    position: relative;
+    max-width: 90%;
+    max-height: 90%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    
+    img {
+      max-width: 100%;
+      max-height: 80vh;
+      object-fit: contain;
+      border-radius: 4px;
     }
     
-    30% {
-      transform: translateY(-6px);
+    .modal-caption {
+      margin-top: 1rem;
+      color: white;
+      font-size: 1rem;
+      text-align: center;
     }
+    
+    .close-modal {
+      position: absolute;
+      top: -1.5rem;
+      right: -1.5rem;
+      width: 2rem;
+      height: 2rem;
+      background-color: var(--bg-color);
+      border: none;
+      border-radius: 50%;
+      font-size: 1.5rem;
+      line-height: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      color: var(--text-color);
+      opacity: 0.8;
+      
+      &:hover {
+        opacity: 1;
+      }
+      
+      &:focus {
+        outline: 2px solid var(--accent-color);
+        outline-offset: 2px;
+      }
+    }
+  }
+  
+  @keyframes typing {
+    0%, 100% {
+      transform: scale(0.75);
+      opacity: 0.5;
+    }
+    
+    50% {
+      transform: scale(1);
+      opacity: 1;
+    }
+  }
+  
+  .file-icon {
+    font-size: 1.5rem;
+    margin-right: 10px;
+  }
+  
+  .file-info {
+    display: flex;
+    flex-direction: column;
+  }
+  
+  .file-status {
+    margin-top: 5px;
+    font-size: 0.8rem;
+  }
+  
+  .document-status {
+    padding: 2px 5px;
+    border-radius: 4px;
+  }
+  
+  .document-status.success {
+    background-color: rgba(25, 135, 84, 0.1);
+    color: var(--success-color, #198754);
+  }
+  
+  .document-status.error {
+    background-color: rgba(220, 53, 69, 0.1);
+    color: var(--error-color, #dc3545);
+  }
+  
+  .document-status.info {
+    background-color: rgba(13, 110, 253, 0.1);
+    color: var(--info-color, #0d6efd);
   }
 </style> 
