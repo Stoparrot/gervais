@@ -10,7 +10,11 @@ const config = {
 			fallback: 'index.html',
 			precompress: false,
 			strict: true
-		})
+		}),
+		// Add base path for GitHub Pages
+		paths: {
+			base: process.env.NODE_ENV === 'production' ? '/gervais' : ''
+		}
 	}
 };
 
