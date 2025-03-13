@@ -66,27 +66,44 @@ npm run build
 
 ### Deployment
 
-#### Deploying to Vercel (Recommended)
+#### Deploying to GitHub Pages
 
-The easiest way to deploy this application is using Vercel:
+This application is set up for easy deployment to GitHub Pages:
 
 1. Push your code to a GitHub repository
-2. Go to [Vercel](https://vercel.com/) and sign up or log in
-3. Click "New Project" and import your repository
-4. Vercel will automatically detect SvelteKit and configure the build settings
-5. Click "Deploy" and your application will be live in minutes
+2. The GitHub Actions workflow will automatically build and deploy your site
+3. Your site will be available at `https://your-username.github.io/your-repo-name/`
 
-For automatic deployments via GitHub Actions, you'll need to set up the following repository secrets:
-- `VERCEL_TOKEN`: Your Vercel API token
-- `VERCEL_ORG_ID`: Your Vercel organization ID
-- `VERCEL_PROJECT_ID`: Your Vercel project ID
+The deployment happens automatically when you push to the `main` branch, thanks to the configured GitHub Actions workflow.
+
+If you want to manually deploy:
+
+```bash
+# Build the app with static adapter
+cp svelte.config.static.js svelte.config.js
+npm run build
+
+# Create/switch to gh-pages branch
+git checkout gh-pages
+# (or git checkout -b gh-pages if the branch doesn't exist)
+
+# Copy build files to root directory
+cp -r build/* .
+
+# Commit and push
+git add .
+git commit -m "Update site"
+git push origin gh-pages
+
+# Return to main branch
+git checkout main
+```
 
 #### Other Deployment Options
 
 You can also deploy to:
 - Netlify
 - Cloudflare Pages
-- GitHub Pages
 - Any static hosting service that supports SvelteKit's static adapter
 
 ## License
