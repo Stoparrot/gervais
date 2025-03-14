@@ -240,16 +240,32 @@ export async function streamCompletion(
     
     // Check if we should request image generation based on the prompt
     const shouldRequestImageGeneration = messages.some(msg => {
+      if (msg.role !== 'user') return false;
+      
       const content = msg.content.toLowerCase();
-      return (
-        msg.role === 'user' && (
-          content.includes('generate an image') ||
-          content.includes('create an image') ||
-          content.includes('draw') ||
-          content.includes('picture of') ||
-          content.includes('image of')
-        )
-      );
+      console.log('Checking for image generation request in message:', content);
+      
+      // More comprehensive pattern matching
+      const imageGenerationPatterns = [
+        'generate an image',
+        'create an image',
+        'draw',
+        'picture of',
+        'image of',
+        'make an image',
+        'create a picture',
+        'generate a photo',
+        'create an illustration',
+        'visualize'
+      ];
+      
+      const containsImageGenerationRequest = imageGenerationPatterns.some(pattern => content.includes(pattern));
+      
+      if (containsImageGenerationRequest) {
+        console.log('Image generation request detected!');
+      }
+      
+      return containsImageGenerationRequest;
     });
     
     // Create the request body
@@ -279,6 +295,14 @@ export async function streamCompletion(
         }
       ]
     };
+    
+    // Log detailed request information for debugging
+    console.log('Image generation requested:', shouldRequestImageGeneration);
+    console.log('Request configuration:', JSON.stringify({
+      responseModalities: requestBody.generationConfig.responseModalities,
+      temperature: requestBody.generationConfig.temperature,
+      maxOutputTokens: requestBody.generationConfig.maxOutputTokens
+    }, null, 2));
     
     // Log the complete URL for debugging
     const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${modelId}:streamGenerateContent?key=${apiKey}`;
@@ -515,16 +539,32 @@ export async function completion(modelId: string, messages: Message[]): Promise<
     
     // Check if we should request image generation based on the prompt
     const shouldRequestImageGeneration = messages.some(msg => {
+      if (msg.role !== 'user') return false;
+      
       const content = msg.content.toLowerCase();
-      return (
-        msg.role === 'user' && (
-          content.includes('generate an image') ||
-          content.includes('create an image') ||
-          content.includes('draw') ||
-          content.includes('picture of') ||
-          content.includes('image of')
-        )
-      );
+      console.log('Checking for image generation request in message:', content);
+      
+      // More comprehensive pattern matching
+      const imageGenerationPatterns = [
+        'generate an image',
+        'create an image',
+        'draw',
+        'picture of',
+        'image of',
+        'make an image',
+        'create a picture',
+        'generate a photo',
+        'create an illustration',
+        'visualize'
+      ];
+      
+      const containsImageGenerationRequest = imageGenerationPatterns.some(pattern => content.includes(pattern));
+      
+      if (containsImageGenerationRequest) {
+        console.log('Image generation request detected!');
+      }
+      
+      return containsImageGenerationRequest;
     });
     
     // Create the request body
@@ -554,6 +594,14 @@ export async function completion(modelId: string, messages: Message[]): Promise<
         }
       ]
     };
+    
+    // Log detailed request information for debugging
+    console.log('Image generation requested:', shouldRequestImageGeneration);
+    console.log('Request configuration:', JSON.stringify({
+      responseModalities: requestBody.generationConfig.responseModalities,
+      temperature: requestBody.generationConfig.temperature,
+      maxOutputTokens: requestBody.generationConfig.maxOutputTokens
+    }, null, 2));
     
     // Log the complete URL for debugging
     const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${modelId}:generateContent?key=${apiKey}`;
@@ -592,8 +640,22 @@ export async function completion(modelId: string, messages: Message[]): Promise<
     let responseText = '';
     const mediaItems: MediaItem[] = [];
     
+    // Log the actual response for debugging
+    console.log('Raw response from Google API:', JSON.stringify(data, null, 2));
+    
     // Process parts which could be text or images
     const parts = data.candidates[0]?.content?.parts || [];
+    console.log('Found parts in response:', parts.length);
+    parts.forEach((part, index) => {
+      if (part.text) {
+        console.log(`Part ${index}: text content (length ${part.text.length})`);
+      } else if (part.inlineData) {
+        console.log(`Part ${index}: inlineData with mimeType ${part.inlineData.mimeType}, data length: ${part.inlineData.data?.length || 0}`);
+      } else {
+        console.log(`Part ${index}: unknown content type`, part);
+      }
+    });
+    
     let hasImageRequest = shouldRequestImageGeneration;
     let hasImageResponse = false;
     
@@ -663,16 +725,32 @@ export class GoogleService implements LLMService {
     
     // Check if we should request image generation based on the prompt
     const shouldRequestImageGeneration = messages.some(msg => {
+      if (msg.role !== 'user') return false;
+      
       const content = msg.content.toLowerCase();
-      return (
-        msg.role === 'user' && (
-          content.includes('generate an image') ||
-          content.includes('create an image') ||
-          content.includes('draw') ||
-          content.includes('picture of') ||
-          content.includes('image of')
-        )
-      );
+      console.log('Checking for image generation request in message:', content);
+      
+      // More comprehensive pattern matching
+      const imageGenerationPatterns = [
+        'generate an image',
+        'create an image',
+        'draw',
+        'picture of',
+        'image of',
+        'make an image',
+        'create a picture',
+        'generate a photo',
+        'create an illustration',
+        'visualize'
+      ];
+      
+      const containsImageGenerationRequest = imageGenerationPatterns.some(pattern => content.includes(pattern));
+      
+      if (containsImageGenerationRequest) {
+        console.log('Image generation request detected!');
+      }
+      
+      return containsImageGenerationRequest;
     });
     
     const request: GoogleCompletionRequest = {
@@ -742,8 +820,22 @@ export class GoogleService implements LLMService {
       let responseText = '';
       const mediaItems: MediaItem[] = [];
       
+      // Log the actual response for debugging
+      console.log('Raw response from Google API:', JSON.stringify(data, null, 2));
+      
       // Process parts which could be text or images
       const parts = data.candidates[0]?.content?.parts || [];
+      console.log('Found parts in response:', parts.length);
+      parts.forEach((part, index) => {
+        if (part.text) {
+          console.log(`Part ${index}: text content (length ${part.text.length})`);
+        } else if (part.inlineData) {
+          console.log(`Part ${index}: inlineData with mimeType ${part.inlineData.mimeType}, data length: ${part.inlineData.data?.length || 0}`);
+        } else {
+          console.log(`Part ${index}: unknown content type`, part);
+        }
+      });
+      
       let hasImageRequest = shouldRequestImageGeneration;
       let hasImageResponse = false;
       
