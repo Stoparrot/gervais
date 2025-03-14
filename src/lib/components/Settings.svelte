@@ -4,8 +4,8 @@
   import Button from './Button.svelte';
   import XIcon from 'lucide-svelte/icons/x';
   
-  // We always render this component when it should be visible
-  // The parent controls whether to include it in the DOM
+  // We check the isOpen prop to determine whether to render the component
+  export let isOpen = false;
   
   const dispatch = createEventDispatcher();
   
@@ -95,6 +95,7 @@
   }
 </script>
 
+{#if isOpen}
 <div 
   class="settings-overlay" 
   on:click|self={close} 
@@ -198,6 +199,7 @@
     </div>
   </div>
 </div>
+{/if}
 
 <style lang="scss">
   .settings-overlay {

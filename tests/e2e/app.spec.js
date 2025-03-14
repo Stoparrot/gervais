@@ -2,13 +2,13 @@
 import { test, expect } from '@playwright/test';
 import { loadApp } from './fixtures';
 
-test.describe('LLM Chat App', () => {
+test.describe('Gervais Chat App', () => {
   test('loads successfully', async ({ page }) => {
     await loadApp(page);
     
     // Check that the page title is correct
     const title = await page.title();
-    expect(title).toContain('LLM Chat App');
+    expect(title).toContain('Gervais');
     
     // Verify that the sidebar is present - use a more specific selector
     const sidebarExists = await page.locator('.sidebar, [data-testid="sidebar"]').count() > 0;
