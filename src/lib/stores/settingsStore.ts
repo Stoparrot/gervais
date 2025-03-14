@@ -8,7 +8,6 @@ export interface ApiKeys {
   openai: string;
   google: string;
   ollamaHost: string;
-  localHost: string;
 }
 
 // Default settings
@@ -18,8 +17,7 @@ const defaultSettings: Settings = {
     anthropic: '',
     openai: '',
     google: '',
-    ollamaHost: 'http://localhost:11434',
-    localHost: 'http://localhost:8000'
+    ollamaHost: 'http://localhost:11434'
   },
   videoCaptureDuration: 5, // seconds
   videoCaptureFps: 1,
@@ -61,8 +59,7 @@ export const settingsStore = {
             anthropic: '',
             openai: '',
             google: '',
-            ollamaHost: 'http://localhost:11434',
-            localHost: 'http://localhost:8000'
+            ollamaHost: 'http://localhost:11434'
           };
         }
         

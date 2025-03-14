@@ -13,8 +13,7 @@
     anthropic: '',
     openai: '',
     google: '',
-    ollamaHost: 'http://localhost:11434',
-    localHost: 'http://localhost:8000'
+    ollamaHost: 'http://localhost:11434'
   };
   
   let saveInProgress = false;
@@ -32,8 +31,7 @@
       anthropic: storedKeys.anthropic || '',
       openai: storedKeys.openai || '',
       google: storedKeys.google || '',
-      ollamaHost: storedKeys.ollamaHost || 'http://localhost:11434',
-      localHost: storedKeys.localHost || 'http://localhost:8000'
+      ollamaHost: storedKeys.ollamaHost || 'http://localhost:11434'
     };
     
     console.log('Initialized API key form with:', apiKeys);
@@ -64,8 +62,7 @@
         anthropic: apiKeys.anthropic,
         openai: apiKeys.openai,
         google: apiKeys.google,
-        ollamaHost: apiKeys.ollamaHost || 'http://localhost:11434',
-        localHost: apiKeys.localHost || 'http://localhost:8000'
+        ollamaHost: apiKeys.ollamaHost || 'http://localhost:11434'
       });
       
       // Verify the keys were saved
@@ -163,18 +160,6 @@
               autocomplete="off"
             />
             <small>Example: http://localhost:11434</small>
-          </div>
-          
-          <div class="form-group">
-            <label for="local-host">Local LLM Host</label>
-            <input
-              id="local-host"
-              type="text"
-              bind:value={apiKeys.localHost}
-              placeholder="http://localhost:8000"
-              autocomplete="off"
-            />
-            <small>URL for your self-hosted LLM server</small>
           </div>
         </div>
         

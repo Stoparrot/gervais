@@ -22,7 +22,7 @@ export interface Chat {
 }
 
 // LLM Types
-export type LLMProvider = 'openai' | 'anthropic' | 'google' | 'ollama' | 'local';
+export type LLMProvider = 'openai' | 'anthropic' | 'google' | 'ollama';
 
 export interface LLMModel {
   id: string;
@@ -91,5 +91,4 @@ export interface ApiKeys {
   openai?: string;
   google?: string;
   ollamaHost?: string;
-  localHost?: string;
 } 

@@ -287,7 +287,7 @@ export class AnthropicService implements LLMService {
 }
 
 // Get LLM service based on provider
-export function getLLMService(provider: 'openai' | 'anthropic' | 'google' | 'ollama' | 'local'): LLMService {
+export function getLLMService(provider: 'openai' | 'anthropic' | 'google' | 'ollama'): LLMService {
   switch (provider) {
     case 'openai':
       return new OpenAIService();
@@ -299,10 +299,6 @@ export function getLLMService(provider: 'openai' | 'anthropic' | 'google' | 'oll
       // Ollama uses OpenAI-compatible API
       const settings = get(settingsStore);
       return new OpenAIService(settings.apiKeys.ollamaHost || 'http://localhost:11434/v1');
-    case 'local':
-      // Local OpenAI-compatible API
-      const localSettings = get(settingsStore);
-      return new OpenAIService(localSettings.apiKeys.localHost || 'http://localhost:8000/v1');
     default:
       throw new Error(`Unsupported provider: ${provider}`);
   }
