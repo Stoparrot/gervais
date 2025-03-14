@@ -1,26 +1,13 @@
 {
   "version": 2,
-  "buildCommand": "cp svelte.config.vercel.js svelte.config.js && npm run build",
-  "outputDirectory": "build",
-  "devCommand": "npm run dev",
-  "installCommand": "npm install",
-  "framework": "sveltekit",
-  "github": {
-    "silent": true
-  },
-  "cleanUrls": true,
-  "trailingSlash": false,
-  "routes": [
+  "builds": [
     {
-      "src": "/_app/.*",
-      "headers": { "cache-control": "public, max-age=31536000, immutable" }
-    },
-    {
-      "handle": "filesystem"
-    },
-    {
-      "src": "/(.*)",
-      "dest": "/index.html"
+      "src": "package.json",
+      "use": "@vercel/static-build"
     }
+  ],
+  "routes": [
+    { "handle": "filesystem" },
+    { "src": "/.*", "dest": "/index.html" }
   ]
 } 
