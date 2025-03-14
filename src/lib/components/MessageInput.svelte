@@ -28,7 +28,9 @@
   }>();
   
   let inputElement: HTMLTextAreaElement;
+  let inputArea: HTMLDivElement;
   let isMobile = false;
+  let isDragging = false;
   
   onMount(() => {
     // Check if on mobile device
@@ -111,6 +113,46 @@
   function toggleTool(tool: string) {
     const newState = !tools[tool];
     dispatch('toggleTool', { tool, enabled: newState });
+  }
+  
+  // Drag and drop handlers
+  function handleDragEnter(event: DragEvent) {
+    event.preventDefault();
+    event.stopPropagation();
+    if (!disabled) {
+      isDragging = true;
+    }
+  }
+  
+  function handleDragOver(event: DragEvent) {
+    event.preventDefault();
+    event.stopPropagation();
+    if (!disabled) {
+      isDragging = true;
+    }
+  }
+  
+  function handleDragLeave(event: DragEvent) {
+    event.preventDefault();
+    event.stopPropagation();
+    // Only set isDragging to false if we're leaving the parent element
+    // This prevents flicker when moving between child elements
+    if (event.target === inputArea) {
+      isDragging = false;
+    }
+  }
+  
+  function handleDrop(event: DragEvent) {
+    event.preventDefault();
+    event.stopPropagation();
+    isDragging = false;
+    
+    if (disabled) return;
+    
+    if (event.dataTransfer?.files && event.dataTransfer.files.length > 0) {
+      const files = Array.from(event.dataTransfer.files);
+      dispatch('uploadFile', files);
+    }
   }
   
   // Update textarea height when value changes
@@ -281,6 +323,13 @@
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
     overflow: hidden;
     padding: 8px 8px;
+    transition: all 0.2s ease-in-out;
+    
+    &.dragging {
+      background-color: var(--highlight-bg);
+      border: 2px dashed var(--accent-color);
+      box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+    }
     
     @media (max-width: 768px) {
       border-radius: 18px; /* Slightly smaller radius on mobile */
