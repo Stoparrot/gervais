@@ -2,7 +2,7 @@
   "name": "LLM Chat App",
   "short_name": "Chat App",
   "description": "A versatile chat interface for LLMs",
-  "start_url": "/gervais/",
+  "start_url": "/",
   "display": "standalone",
   "background_color": "#1a1a1a",
   "theme_color": "#1a1a1a",
