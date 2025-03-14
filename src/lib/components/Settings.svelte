@@ -4,7 +4,8 @@
   import Button from './Button.svelte';
   import XIcon from 'lucide-svelte/icons/x';
   
-  export let isOpen = false;
+  // We always render this component when it should be visible
+  // The parent controls whether to include it in the DOM
   
   const dispatch = createEventDispatcher();
   
@@ -94,111 +95,109 @@
   }
 </script>
 
-{#if isOpen}
-  <div 
-    class="settings-overlay" 
-    on:click|self={close} 
-    on:keydown={(e) => e.key === 'Escape' && close()}
-    role="dialog" 
-    aria-modal="true"
-    tabindex="-1"
-  >
-    <div class="settings-modal">
-      <div class="settings-header">
-        <h2>Settings</h2>
-        <Button variant="icon" on:click={close} aria-label="Close settings">
-          <XIcon size={20} />
-        </Button>
-      </div>
-      
-      <div class="settings-content">
-        <section>
-          <h3>API Keys</h3>
-          <p class="description">
-            Add your API keys to use different LLM providers. Keys are stored locally in your browser and never sent out anywhere.
-          </p>
-          
-          <div class="api-keys-form">
-            <div class="form-group">
-              <label for="anthropic-key">Anthropic API Key</label>
-              <input
-                id="anthropic-key"
-                type="password"
-                bind:value={apiKeys.anthropic}
-                placeholder="Enter Anthropic API key"
-                autocomplete="off"
-              />
-            </div>
-            
-            <div class="form-group">
-              <label for="openai-key">OpenAI API Key</label>
-              <input
-                id="openai-key"
-                type="password"
-                bind:value={apiKeys.openai}
-                placeholder="Enter OpenAI API key"
-                autocomplete="off"
-              />
-            </div>
-            
-            <div class="form-group">
-              <label for="google-key">Google AI API Key</label>
-              <input
-                id="google-key"
-                type="password"
-                bind:value={apiKeys.google}
-                placeholder="Enter Google AI API key"
-                autocomplete="off"
-              />
-            </div>
-            
-            <div class="form-group">
-              <label for="ollama-host">Ollama Host</label>
-              <input
-                id="ollama-host"
-                type="text"
-                bind:value={apiKeys.ollamaHost}
-                placeholder="http://localhost:11434"
-                autocomplete="off"
-              />
-              <small>Example: http://localhost:11434</small>
-            </div>
-            
-            <div class="form-group">
-              <label for="local-host">Local LLM Host</label>
-              <input
-                id="local-host"
-                type="text"
-                bind:value={apiKeys.localHost}
-                placeholder="http://localhost:8000"
-                autocomplete="off"
-              />
-              <small>URL for your self-hosted LLM server</small>
-            </div>
+<div 
+  class="settings-overlay" 
+  on:click|self={close} 
+  on:keydown={(e) => e.key === 'Escape' && close()}
+  role="dialog" 
+  aria-modal="true"
+  tabindex="-1"
+>
+  <div class="settings-modal">
+    <div class="settings-header">
+      <h2>Settings</h2>
+      <Button variant="icon" on:click={close} aria-label="Close settings">
+        <XIcon size={20} />
+      </Button>
+    </div>
+    
+    <div class="settings-content">
+      <section>
+        <h3>API Keys</h3>
+        <p class="description">
+          Add your API keys to use different LLM providers. Keys are stored locally in your browser and never sent out anywhere.
+        </p>
+        
+        <div class="api-keys-form">
+          <div class="form-group">
+            <label for="anthropic-key">Anthropic API Key</label>
+            <input
+              id="anthropic-key"
+              type="password"
+              bind:value={apiKeys.anthropic}
+              placeholder="Enter Anthropic API key"
+              autocomplete="off"
+            />
           </div>
           
-          <div class="form-actions">
-            <Button 
-              variant="primary" 
-              on:click={saveApiKeys} 
-              disabled={saveInProgress}
-            >
-              {saveInProgress ? 'Saving...' : 'Save API Keys'}
-            </Button>
-            
-            {#if saveSuccess}
-              <span class="success-message">API keys saved successfully!</span>
-            {/if}
-            
-            {#if errorMessage}
-              <span class="error-message">{errorMessage}</span>
-            {/if}
+          <div class="form-group">
+            <label for="openai-key">OpenAI API Key</label>
+            <input
+              id="openai-key"
+              type="password"
+              bind:value={apiKeys.openai}
+              placeholder="Enter OpenAI API key"
+              autocomplete="off"
+            />
           </div>
-        </section>
-      </div>
+          
+          <div class="form-group">
+            <label for="google-key">Google AI API Key</label>
+            <input
+              id="google-key"
+              type="password"
+              bind:value={apiKeys.google}
+              placeholder="Enter Google AI API key"
+              autocomplete="off"
+            />
+          </div>
+          
+          <div class="form-group">
+            <label for="ollama-host">Ollama Host</label>
+            <input
+              id="ollama-host"
+              type="text"
+              bind:value={apiKeys.ollamaHost}
+              placeholder="http://localhost:11434"
+              autocomplete="off"
+            />
+            <small>Example: http://localhost:11434</small>
+          </div>
+          
+          <div class="form-group">
+            <label for="local-host">Local LLM Host</label>
+            <input
+              id="local-host"
+              type="text"
+              bind:value={apiKeys.localHost}
+              placeholder="http://localhost:8000"
+              autocomplete="off"
+            />
+            <small>URL for your self-hosted LLM server</small>
+          </div>
+        </div>
+        
+        <div class="form-actions">
+          <Button 
+            variant="primary" 
+            on:click={saveApiKeys} 
+            disabled={saveInProgress}
+          >
+            {saveInProgress ? 'Saving...' : 'Save API Keys'}
+          </Button>
+          
+          {#if saveSuccess}
+            <span class="success-message">API keys saved successfully!</span>
+          {/if}
+          
+          {#if errorMessage}
+            <span class="error-message">{errorMessage}</span>
+          {/if}
+        </div>
+      </section>
     </div>
   </div>
-{/if}
+</div>
 
 <style lang="scss">
   .settings-overlay {

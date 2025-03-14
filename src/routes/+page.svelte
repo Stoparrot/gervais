@@ -576,7 +576,12 @@
   </main>
 </div>
 
-<Settings isOpen={isSettingsOpen} on:close={() => isSettingsOpen = false} />
+<!-- Move the Settings component to an isolated DOM node that doesn't cause a re-render of the parent -->
+{#if isSettingsOpen}
+  <div class="settings-portal">
+    <Settings isOpen={true} on:close={() => isSettingsOpen = false} />
+  </div>
+{/if}
 
 <style lang="scss">
   .chat-container {
@@ -681,6 +686,21 @@
         gap: 0.5rem;
         font-size: 0.9rem;
       }
+    }
+  }
+  
+  /* Settings portal styles to ensure it appears above everything else */
+  .settings-portal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 1000;
+    pointer-events: none;
+    
+    :global(.settings-overlay) {
+      pointer-events: auto;
     }
   }
 </style>
