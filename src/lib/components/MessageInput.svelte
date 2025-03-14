@@ -149,8 +149,42 @@
     
     if (disabled) return;
     
+    // Check for files in the drop event
     if (event.dataTransfer?.files && event.dataTransfer.files.length > 0) {
+      // Explicitly handle as files, not as text
       const files = Array.from(event.dataTransfer.files);
+      
+      // Prevent the default behavior of inserting text content
+      if (document.activeElement === inputElement) {
+        inputElement.blur();
+        // Re-focus after a slight delay to avoid text insertion
+        setTimeout(() => {
+          inputElement.focus();
+        }, 10);
+      }
+      
+      // Dispatch the files for upload
+      dispatch('uploadFile', files);
+      
+      // Clear any text data that might have been extracted
+      if (event.dataTransfer.items) {
+        for (let i = 0; i < event.dataTransfer.items.length; i++) {
+          if (event.dataTransfer.items[i].kind === 'string') {
+            event.dataTransfer.items.remove(i);
+            i--;
+          }
+        }
+      }
+    }
+  }
+  
+  // Handle paste event to properly handle files
+  function handlePaste(event: ClipboardEvent) {
+    if (disabled) return;
+    
+    if (event.clipboardData?.files && event.clipboardData.files.length > 0) {
+      event.preventDefault();
+      const files = Array.from(event.clipboardData.files);
       dispatch('uploadFile', files);
     }
   }
@@ -205,6 +239,7 @@
         {disabled}
         on:keydown={handleKeydown}
         on:input={autoResize}
+        on:paste={handlePaste}
         rows="2"
         enterkeyhint="enter"
       ></textarea>
