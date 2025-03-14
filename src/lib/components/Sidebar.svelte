@@ -81,7 +81,7 @@
 <aside class="sidebar" class:expanded={isExpanded}>
   <div class="sidebar-header">
     <div class="logo-container">
-      <MessageSquare size={24} class="logo" />
+      <MessageSquare size={24} color="var(--accent-color)" />
       <h2>Gervais</h2>
     </div>
     
@@ -205,11 +205,6 @@
       display: flex;
       align-items: center;
       gap: 0.5rem;
-      
-      .logo {
-        width: 24px;
-        height: 24px;
-      }
       
       h2 {
         margin: 0;

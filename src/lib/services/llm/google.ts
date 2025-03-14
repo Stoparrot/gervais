@@ -271,35 +271,9 @@ export async function streamCompletion(
     console.log('Sending request to Google Gemini API with model:', modelId);
     console.log('Messages after conversion:', JSON.stringify(googleMessages, null, 2));
     
-    // Check if we should request image generation based on the prompt
-    const shouldRequestImageGeneration = messages.some(msg => {
-      if (msg.role !== 'user') return false;
-      
-      const content = msg.content.toLowerCase();
-      console.log('Checking for image generation request in message:', content);
-      
-      // More comprehensive pattern matching
-      const imageGenerationPatterns = [
-        'generate an image',
-        'create an image',
-        'draw',
-        'picture of',
-        'image of',
-        'make an image',
-        'create a picture',
-        'generate a photo',
-        'create an illustration',
-        'visualize'
-      ];
-      
-      const containsImageGenerationRequest = imageGenerationPatterns.some(pattern => content.includes(pattern));
-      
-      if (containsImageGenerationRequest) {
-        console.log('Image generation request detected!');
-      }
-      
-      return containsImageGenerationRequest;
-    });
+    // Always request image generation
+    const shouldRequestImageGeneration = true;
+    console.log('Always requesting image generation');
     
     // Create the request body
     const requestBody = {
@@ -307,7 +281,7 @@ export async function streamCompletion(
       generationConfig: {
         temperature: 0.7,
         maxOutputTokens: 2048,
-        responseModalities: shouldRequestImageGeneration ? ['TEXT', 'IMAGE'] : ['TEXT'],
+        responseModalities: ['TEXT', 'IMAGE'], // Always include IMAGE
       },
       safetySettings: [
         {
@@ -570,35 +544,9 @@ export async function completion(modelId: string, messages: Message[]): Promise<
     console.log('Sending non-streaming request to Google Gemini API with model:', modelId);
     console.log('Messages after conversion:', JSON.stringify(googleMessages, null, 2));
     
-    // Check if we should request image generation based on the prompt
-    const shouldRequestImageGeneration = messages.some(msg => {
-      if (msg.role !== 'user') return false;
-      
-      const content = msg.content.toLowerCase();
-      console.log('Checking for image generation request in message:', content);
-      
-      // More comprehensive pattern matching
-      const imageGenerationPatterns = [
-        'generate an image',
-        'create an image',
-        'draw',
-        'picture of',
-        'image of',
-        'make an image',
-        'create a picture',
-        'generate a photo',
-        'create an illustration',
-        'visualize'
-      ];
-      
-      const containsImageGenerationRequest = imageGenerationPatterns.some(pattern => content.includes(pattern));
-      
-      if (containsImageGenerationRequest) {
-        console.log('Image generation request detected!');
-      }
-      
-      return containsImageGenerationRequest;
-    });
+    // Always request image generation
+    const shouldRequestImageGeneration = true;
+    console.log('Always requesting image generation');
     
     // Create the request body
     const requestBody = {
@@ -606,7 +554,7 @@ export async function completion(modelId: string, messages: Message[]): Promise<
       generationConfig: {
         temperature: 0.7,
         maxOutputTokens: 2048,
-        responseModalities: shouldRequestImageGeneration ? ['TEXT', 'IMAGE'] : ['TEXT'],
+        responseModalities: ['TEXT', 'IMAGE'], // Always include IMAGE
       },
       safetySettings: [
         {
@@ -728,22 +676,9 @@ export class GoogleService implements LLMService {
     const settings = get(settingsStore);
     this.apiKey = settings.apiKeys.google || null;
     
-    // Apply fallback key immediately if no key is set
-    if (!this.apiKey) {
-      this.apiKey = 'AIzaSyCRI2T6ONhGuUAwjdoCzR6jAJXIs_ZCTHI';
-      console.log('Using default fallback Google API key in constructor');
-      
-      // Update the settings store with the default key for future use
-      if (browser) {
-        settingsStore.updateApiKeys({
-          google: this.apiKey
-        }).catch(e => console.error('Failed to update settings store with default key:', e));
-      }
-    }
-    
     // Subscribe to settings store to get updated API key
     settingsStore.subscribe(settings => {
-      this.apiKey = settings.apiKeys.google || this.apiKey;
+      this.apiKey = settings.apiKeys.google || null;
     });
   }
   
@@ -769,42 +704,16 @@ export class GoogleService implements LLMService {
     
     const googleMessages = convertToGoogleMessages(messages);
     
-    // Check if we should request image generation based on the prompt
-    const shouldRequestImageGeneration = messages.some(msg => {
-      if (msg.role !== 'user') return false;
-      
-      const content = msg.content.toLowerCase();
-      console.log('Checking for image generation request in message:', content);
-      
-      // More comprehensive pattern matching
-      const imageGenerationPatterns = [
-        'generate an image',
-        'create an image',
-        'draw',
-        'picture of',
-        'image of',
-        'make an image',
-        'create a picture',
-        'generate a photo',
-        'create an illustration',
-        'visualize'
-      ];
-      
-      const containsImageGenerationRequest = imageGenerationPatterns.some(pattern => content.includes(pattern));
-      
-      if (containsImageGenerationRequest) {
-        console.log('Image generation request detected!');
-      }
-      
-      return containsImageGenerationRequest;
-    });
+    // Always request image generation
+    const shouldRequestImageGeneration = true;
+    console.log('Always requesting image generation');
     
     const request: GoogleCompletionRequest = {
       contents: googleMessages,
       generationConfig: {
         temperature: options.temperature || 0.7,
         maxOutputTokens: options.maxTokens || 2048,
-        responseModalities: shouldRequestImageGeneration ? ['TEXT', 'IMAGE'] : ['TEXT'],
+        responseModalities: ['TEXT', 'IMAGE'], // Always include IMAGE
       },
       safetySettings: [
         {
