@@ -2,8 +2,14 @@
   import { onMount } from 'svelte';
   import { settingsStore } from '$lib/stores/settingsStore';
   import { initializeModels } from '$lib/services/llm/models';
+  import { injectAnalytics } from '@vercel/analytics/sveltekit';
+  import { injectSpeedInsights } from '@vercel/speed-insights/sveltekit';
   import '../app.scss';
   import '$lib/styles/highlight.scss';
+  
+  // Initialize Vercel Analytics and Speed Insights
+  injectAnalytics();
+  injectSpeedInsights();
   
   onMount(async () => {
     // Load local models on app initialization
