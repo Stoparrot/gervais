@@ -1,6 +1,6 @@
 <script lang="ts">
   import { createEventDispatcher, onMount } from 'svelte';
-  import SendIcon from 'lucide-svelte/icons/send';
+  import CircleArrowUp from 'lucide-svelte/icons/circle-arrow-up';
   import MicIcon from 'lucide-svelte/icons/mic';
   import VideoIcon from 'lucide-svelte/icons/video';
   import GlobeIcon from 'lucide-svelte/icons/globe';
@@ -223,7 +223,7 @@
           class="send-button"
           aria-label="Send message"
         >
-          <SendIcon size={18} />
+          <CircleArrowUp size={20} />
         </Button>
       </div>
     </div>
@@ -444,13 +444,10 @@
     align-items: center;
     
     :global(.send-button) {
-      background-color: var(--accent-color-light, rgba(0, 0, 0, 0.1));
       color: var(--accent-color, #3b82f6);
-      border-radius: 50%;
-      transition: background-color 0.2s ease, transform 0.2s ease;
+      transition: transform 0.2s ease;
       
       &:hover:not(:disabled) {
-        background-color: var(--accent-color-light-hover, rgba(0, 0, 0, 0.15));
         transform: scale(1.05);
       }
       
@@ -460,7 +457,6 @@
       
       &:disabled {
         opacity: 0.5;
-        background-color: var(--accent-color-light, rgba(0, 0, 0, 0.05));
       }
     }
   }
