@@ -1,4 +1,4 @@
-import{t as h,b as c}from"../chunks/D9u51XOd.js";import{i as d}from"../chunks/DSKYDh3O.js";import{w as p,al as g,z as u,X as f,V as o,W as s}from"../chunks/BSv_i5Hy.js";import{M as b}from"../chunks/DdcB1Oy2.js";import{s as v}from"../chunks/fllmau90.js";function x(){return{title:"Markdown Syntax Highlighting Test"}}const M=Object.freeze(Object.defineProperty({__proto__:null,load:x},Symbol.toStringTag,{value:"Module"})),y=`
+import{t as h,b as c}from"../chunks/CD-cSNpP.js";import{i as d}from"../chunks/DSKYDh3O.js";import{w as p,al as g,z as u,X as f,V as o,W as s}from"../chunks/BSv_i5Hy.js";import{M as b}from"../chunks/CoxQhQk-.js";import{s as v}from"../chunks/BFkVdgW4.js";function x(){return{title:"Markdown Syntax Highlighting Test"}}const M=Object.freeze(Object.defineProperty({__proto__:null,load:x},Symbol.toStringTag,{value:"Module"})),y=`
 # Markdown Sample
 
 This is a sample markdown file with code blocks for testing syntax highlighting.
