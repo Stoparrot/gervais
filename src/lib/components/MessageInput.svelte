@@ -2,7 +2,8 @@
   import { createEventDispatcher } from 'svelte';
   import SendIcon from 'lucide-svelte/icons/send';
   import MicIcon from 'lucide-svelte/icons/mic';
-  import CameraIcon from 'lucide-svelte/icons/camera';
+  import VideoIcon from 'lucide-svelte/icons/video';
+  import GlobeIcon from 'lucide-svelte/icons/globe';
   import Paperclip from 'lucide-svelte/icons/paperclip';
   import Button from './Button.svelte';
   import type { MediaItem } from '$lib/types';
@@ -127,17 +128,19 @@
     {/each}
   </div>
   
-  <div class="input-container">
-    <textarea
-      bind:this={inputElement}
-      bind:value
-      {placeholder}
-      {disabled}
-      on:keydown={handleKeydown}
-      rows="1"
-    ></textarea>
+  <div class="input-wrapper">
+    <div class="input-container">
+      <textarea
+        bind:this={inputElement}
+        bind:value
+        {placeholder}
+        {disabled}
+        on:keydown={handleKeydown}
+        rows="1"
+      ></textarea>
+    </div>
     
-    <div class="actions">
+    <div class="actions-bar">
       <input
         type="file"
         id="file-upload"
@@ -177,7 +180,18 @@
         aria-label={isCapturingVideo ? 'Stop video capture' : 'Start video capture'}
       >
         <div class:active={isCapturingVideo}>
-          <CameraIcon size={18} />
+          <VideoIcon size={18} />
+        </div>
+      </Button>
+      
+      <Button
+        variant="icon"
+        size="sm"
+        on:click={() => toggleTool('search')}
+        aria-label="Toggle web search"
+      >
+        <div class:active={tools.search}>
+          <GlobeIcon size={18} />
         </div>
       </Button>
       
@@ -195,15 +209,17 @@
   
   <div class="tools-bar">
     {#each Object.entries(tools) as [tool, enabled]}
-      <button
-        type="button"
-        class="tool-button"
-        class:enabled
-        on:click={() => toggleTool(tool)}
-        aria-label="Toggle {tool}"
-      >
-        {tool}
-      </button>
+      {#if tool !== 'search'} <!-- Don't show search in buttons since we now have an icon -->
+        <button
+          type="button"
+          class="tool-button"
+          class:enabled
+          on:click={() => toggleTool(tool)}
+          aria-label="Toggle {tool}"
+        >
+          {tool}
+        </button>
+      {/if}
     {/each}
   </div>
 </div>
@@ -219,6 +235,39 @@
     display: flex;
     flex-direction: column;
     overflow: hidden;
+  }
+  
+  .input-wrapper {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+  }
+  
+  .actions-bar {
+    display: flex;
+    padding: 8px 12px;
+    border-top: 1px solid var(--border-color);
+    gap: 8px;
+    justify-content: space-between;
+    align-items: center;
+    
+    :global(.active) {
+      color: var(--accent-color);
+    }
+    
+    @media (max-width: 768px) {
+      gap: 6px; /* Slightly larger gap on mobile */
+      
+      :global(button) {
+        width: 34px; /* Larger button size on mobile */
+        height: 34px;
+        
+        :global(svg) {
+          width: 21px; /* Larger icons on mobile */
+          height: 21px;
+        }
+      }
+    }
   }
   
   .tools-bar {
@@ -258,6 +307,7 @@
     flex-wrap: wrap;
     gap: 8px;
     padding: 8px 12px;
+    border-bottom: 1px solid var(--border-color);
     
     &:empty {
       display: none;
@@ -265,10 +315,10 @@
     
     .media-item {
       position: relative;
+      border-radius: 6px;
+      overflow: hidden;
       width: 80px;
       height: 80px;
-      border-radius: 4px;
-      overflow: hidden;
       
       img {
         width: 100%;
@@ -283,16 +333,17 @@
         align-items: center;
         justify-content: center;
         background-color: var(--highlight-bg);
-        padding: 4px;
-        font-size: 0.7rem;
+        padding: 8px;
+        font-size: 0.8rem;
         text-align: center;
         word-break: break-word;
+        color: var(--text-color);
       }
       
       .remove-media {
         position: absolute;
-        top: 2px;
-        right: 2px;
+        top: 4px;
+        right: 4px;
         width: 20px;
         height: 20px;
         border-radius: 50%;
@@ -302,6 +353,13 @@
         align-items: center;
         justify-content: center;
         font-size: 14px;
+        line-height: 1;
+        border: none;
+        cursor: pointer;
+        
+        &:hover {
+          background-color: rgba(0, 0, 0, 0.8);
+        }
       }
     }
   }
@@ -309,8 +367,6 @@
   .input-container {
     display: flex;
     padding: 8px 12px;
-    align-items: flex-end;
-    gap: 8px;
     
     textarea {
       flex: 1;
@@ -324,6 +380,7 @@
       font-family: inherit;
       font-size: 1rem;
       color: var(--text-color);
+      width: 100%;
       
       &:disabled {
         opacity: 0.7;
@@ -332,30 +389,6 @@
       @media (max-width: 768px) {
         font-size: 1.0625rem; /* Slightly larger on mobile */
         min-height: 27px;
-      }
-    }
-    
-    .actions {
-      display: flex;
-      gap: 4px;
-      align-items: center;
-      
-      :global(.active) {
-        color: var(--accent-color);
-      }
-      
-      @media (max-width: 768px) {
-        gap: 6px; /* Slightly larger gap on mobile */
-        
-        :global(button) {
-          width: 34px; /* Larger button size on mobile */
-          height: 34px;
-          
-          :global(svg) {
-            width: 21px; /* Larger icons on mobile */
-            height: 21px;
-          }
-        }
       }
     }
   }
