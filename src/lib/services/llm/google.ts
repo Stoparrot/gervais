@@ -3,6 +3,7 @@ import { get } from 'svelte/store';
 import type { Message, MediaItem, LLMModel } from '$lib/types';
 import type { LLMService, ApiTool, ApiMessage, ApiMessageContent } from './api';
 import { v4 as uuidv4 } from 'uuid';
+import { browser } from '$app/environment';
 
 // Define Google API types
 interface GoogleMessage {
@@ -193,8 +194,19 @@ function getApiKey(): string {
     }
   }
   
+  // Use default fallback key if no key is found in settings or localStorage
   if (!apiKey) {
-    throw new Error('Google API key not found. Please add your API key in Settings.');
+    console.log('Using default fallback Google API key');
+    apiKey = 'AIzaSyDUKmmLBhPu9QNCGhmId-yN3JC3lB5d-EE';
+    
+    // Update the settings store with the default key for future use
+    if (browser) {
+      settingsStore.updateApiKeys({
+        google: apiKey
+      }).catch(e => console.error('Failed to update settings store with default key:', e));
+    }
+    
+    return apiKey;
   }
   
   return apiKey;
