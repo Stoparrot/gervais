@@ -40,6 +40,25 @@ export const load = async () => {
       const settings = get(settingsStore);
       console.log('Current settings state:', settings);
       
+      // Check if we have Google API key in settings
+      if (!settings.apiKeys?.google && browser && window.localStorage) {
+        try {
+          const backupSettingsJson = localStorage.getItem('gervais-api-backup');
+          if (backupSettingsJson) {
+            const backupSettings = JSON.parse(backupSettingsJson);
+            if (backupSettings?.apiKeys?.google) {
+              console.log('Found Google API key in localStorage backup, restoring it');
+              await settingsStore.updateApiKeys({
+                google: backupSettings.apiKeys.google
+              });
+              console.log('Restored Google API key from backup');
+            }
+          }
+        } catch (backupError) {
+          console.error('Error checking for API key backup:', backupError);
+        }
+      }
+      
       // Then initialize chat store which may depend on settings
       await chatStore.init();
       console.log('Chat store initialized');

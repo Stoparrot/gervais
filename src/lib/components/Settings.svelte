@@ -50,11 +50,9 @@
       console.log('Saving API keys to settingsStore:', apiKeys);
       
       // Debug check for key format before saving
-      if (apiKeys.openai) {
-        console.log('EXACT OPENAI KEY BEING SAVED: ', apiKeys.openai);
-        console.log(`OpenAI key before saving: length=${apiKeys.openai.length}, starts with=${apiKeys.openai.substring(0, 4)}`);
-        const charCodes = [...apiKeys.openai.substring(0, 10)].map(c => c.charCodeAt(0));
-        console.log(`First 10 character codes: ${charCodes.join(', ')}`);
+      if (apiKeys.google) {
+        console.log('EXACT GOOGLE KEY BEING SAVED: ', apiKeys.google);
+        console.log(`Google key before saving: length=${apiKeys.google.length}, starts with=${apiKeys.google.substring(0, 4)}`);
       }
       
       // Save all values, including empty ones
@@ -68,12 +66,24 @@
       // Verify the keys were saved
       console.log('API keys saved. Current settingsStore value:', $settingsStore);
       
+      // Also save directly to localStorage as a backup
+      try {
+        const backupSettings = {
+          ...$settingsStore,
+          apiKeys: {
+            ...$settingsStore.apiKeys
+          }
+        };
+        localStorage.setItem('gervais-api-backup', JSON.stringify(backupSettings));
+        console.log('API keys also backed up to localStorage');
+      } catch (backupError) {
+        console.error('Failed to backup API keys to localStorage:', backupError);
+      }
+      
       // Debug check for key format after saving
-      if ($settingsStore.apiKeys?.openai) {
-        console.log('EXACT OPENAI KEY AFTER SAVING: ', $settingsStore.apiKeys.openai);
-        console.log(`OpenAI key after saving: length=${$settingsStore.apiKeys.openai.length}, starts with=${$settingsStore.apiKeys.openai.substring(0, 4)}`);
-        const savedCharCodes = [...$settingsStore.apiKeys.openai.substring(0, 10)].map(c => c.charCodeAt(0));
-        console.log(`First 10 character codes after saving: ${savedCharCodes.join(', ')}`);
+      if ($settingsStore.apiKeys?.google) {
+        console.log('EXACT GOOGLE KEY AFTER SAVING: ', $settingsStore.apiKeys.google);
+        console.log(`Google key after saving: length=${$settingsStore.apiKeys.google.length}, starts with=${$settingsStore.apiKeys.google.substring(0, 4)}`);
       }
       
       saveSuccess = true;
@@ -86,6 +96,7 @@
     } catch (error) {
       console.error('Failed to save API keys:', error);
       errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      saveInProgress = false;
     } finally {
       saveInProgress = false;
     }

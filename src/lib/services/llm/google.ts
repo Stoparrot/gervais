@@ -170,7 +170,28 @@ export async function validateApiKey(apiKey: string): Promise<boolean> {
 // Get API key from settings
 function getApiKey(): string {
   const settings = get(settingsStore);
-  const apiKey = settings.apiKeys.google;
+  let apiKey = settings.apiKeys.google;
+  
+  // If no key in settings store, try to get it from backup in localStorage
+  if (!apiKey && typeof window !== 'undefined') {
+    try {
+      const backupSettingsJson = localStorage.getItem('gervais-api-backup');
+      if (backupSettingsJson) {
+        const backupSettings = JSON.parse(backupSettingsJson);
+        if (backupSettings?.apiKeys?.google) {
+          console.log('Retrieved Google API key from localStorage backup');
+          apiKey = backupSettings.apiKeys.google;
+          
+          // Update the settings store with the recovered key
+          settingsStore.updateApiKeys({
+            google: apiKey
+          }).catch(e => console.error('Failed to update settings store with recovered key:', e));
+        }
+      }
+    } catch (error) {
+      console.error('Error retrieving backup API key from localStorage:', error);
+    }
+  }
   
   if (!apiKey) {
     throw new Error('Google API key not found. Please add your API key in Settings.');
