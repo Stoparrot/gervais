@@ -518,27 +518,31 @@
   
   <main class="chat-main">
     <header class="chat-header">
-      {#if isMobile}
-        <Button
-          variant="icon"
-          on:click={toggleSidebar}
-          aria-label="Open menu"
-        >
-          <Plus size={20} />
-        </Button>
-      {/if}
+      <div class="left-side">
+        {#if isMobile}
+          <Button
+            variant="icon"
+            on:click={toggleSidebar}
+            aria-label="Open menu"
+          >
+            <Plus size={20} />
+          </Button>
+        {/if}
+      </div>
       
       <h1 class="chat-title">
         {$activeChat?.model.name || 'AI Assistant'}
       </h1>
       
-      <Button
-        variant="icon"
-        on:click={() => isSettingsOpen = true}
-        aria-label="Open settings"
-      >
-        <SettingsIcon size={20} />
-      </Button>
+      <div class="right-side">
+        <Button
+          variant="icon"
+          on:click={() => isSettingsOpen = true}
+          aria-label="Open settings"
+        >
+          <SettingsIcon size={20} />
+        </Button>
+      </div>
     </header>
     
     <div class="chat-messages" bind:this={messagesContainer}>
@@ -623,17 +627,17 @@
   .chat-header {
     display: flex;
     align-items: center;
+    justify-content: space-between;
     padding: 1rem;
     border-bottom: 1px solid var(--border-color);
     gap: 1rem;
     position: relative;
     
-    /* Create a wrapper for each side of the header */
-    &::before, &::after {
-      content: "";
-      width: 40px; /* Width to match buttons */
-      display: flex;
-      z-index: 1;
+    /* Instead of pseudoelements, use a proper layout structure */
+    .left-side, .right-side {
+      flex: 0 0 auto;
+      z-index: 2;
+      position: relative;
     }
     
     /* Make sure buttons stay clickable above the title */

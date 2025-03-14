@@ -541,15 +541,15 @@
     :global(.send-button) {
       color: var(--dark-accent-color, #1a56db);
       transition: transform 0.2s ease;
-      transform: scale(1.5); /* Increase size by 150% */
+      transform: scale(1.35); /* Reduced from 1.5 by ~10% */
       margin-right: 8px; /* Add some margin to prevent overlap */
       
       &:hover:not(:disabled) {
-        transform: scale(1.58); /* Scale from the already 1.5x size */
+        transform: scale(1.42); /* Scale from the already 1.35x size */
       }
       
       &:active:not(:disabled) {
-        transform: scale(1.43); /* Scale from the already 1.5x size */
+        transform: scale(1.28); /* Scale from the already 1.35x size */
       }
       
       &:disabled {
