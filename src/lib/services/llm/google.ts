@@ -136,7 +136,13 @@ function convertToGoogleMessages(messages: Message[]): GoogleMessage[] {
 }
 
 // Create a MediaItem from Google's inlineData response
-function createMediaItemFromInlineData(inlineData: { mimeType: string; data: string }): MediaItem {
+function createMediaItemFromInlineData(inlineData: { mimeType: string; data: string }): MediaItem | null {
+  // Check if the data is empty or invalid
+  if (!inlineData.data || inlineData.data.trim() === '') {
+    console.warn('Empty or invalid base64 data received from Google Gemini API');
+    return null;
+  }
+  
   const mediaType = inlineData.mimeType.startsWith('image/') ? 'image' : 'document';
   const preview = base64ToDataURL(inlineData.data, inlineData.mimeType);
   
@@ -401,10 +407,19 @@ export async function streamCompletion(
                 if (part.text) {
                   newText += part.text;
                 } else if (part.inlineData) {
+                  // Log to help debug image generation issues
+                  console.log(`Received inlineData with mimeType: ${part.inlineData.mimeType}, data length: ${part.inlineData.data?.length || 0}`);
+                  
                   // Handle image data
                   const mediaItem = createMediaItemFromInlineData(part.inlineData);
-                  newMediaItems.push(mediaItem);
-                  mediaItems.push(mediaItem);
+                  if (mediaItem) {
+                    newMediaItems.push(mediaItem);
+                    mediaItems.push(mediaItem);
+                  } else {
+                    console.warn('Failed to create media item from inlineData');
+                    // Add a debug message to the text response
+                    newText += `\n\n**Note**: Attempted to generate an image, but received invalid data. This might be due to content restrictions or a technical issue.`;
+                  }
                 }
               }
               
@@ -441,10 +456,19 @@ export async function streamCompletion(
               if (part.text) {
                 newText += part.text;
               } else if (part.inlineData) {
+                // Log to help debug image generation issues
+                console.log(`Received inlineData with mimeType: ${part.inlineData.mimeType}, data length: ${part.inlineData.data?.length || 0}`);
+                
                 // Handle image data
                 const mediaItem = createMediaItemFromInlineData(part.inlineData);
-                newMediaItems.push(mediaItem);
-                mediaItems.push(mediaItem);
+                if (mediaItem) {
+                  newMediaItems.push(mediaItem);
+                  mediaItems.push(mediaItem);
+                } else {
+                  console.warn('Failed to create media item from inlineData');
+                  // Add a debug message to the text response
+                  newText += `\n\n**Note**: Attempted to generate an image, but received invalid data. This might be due to content restrictions or a technical issue.`;
+                }
               }
             }
             
@@ -570,14 +594,26 @@ export async function completion(modelId: string, messages: Message[]): Promise<
     
     // Process parts which could be text or images
     const parts = data.candidates[0]?.content?.parts || [];
+    let hasImageRequest = shouldRequestImageGeneration;
+    let hasImageResponse = false;
+    
     for (const part of parts) {
       if (part.text) {
         responseText += part.text;
       } else if (part.inlineData) {
         // Handle image data
         const mediaItem = createMediaItemFromInlineData(part.inlineData);
-        mediaItems.push(mediaItem);
+        if (mediaItem) {
+          mediaItems.push(mediaItem);
+          hasImageResponse = true;
+        }
       }
+    }
+    
+    // If user requested an image but no valid image was returned, add an error message
+    if (hasImageRequest && !hasImageResponse) {
+      const errorMsg = "Google's API did not return a valid image. This could be due to content policy restrictions, rate limiting, or an error in the image generation process.";
+      responseText += `\n\n**Error generating image**: ${errorMsg}\n\nFull API response: ${JSON.stringify(data, null, 2)}`;
     }
     
     return { text: responseText, media: mediaItems };
@@ -708,14 +744,26 @@ export class GoogleService implements LLMService {
       
       // Process parts which could be text or images
       const parts = data.candidates[0]?.content?.parts || [];
+      let hasImageRequest = shouldRequestImageGeneration;
+      let hasImageResponse = false;
+      
       for (const part of parts) {
         if (part.text) {
           responseText += part.text;
         } else if (part.inlineData) {
           // Handle image data
           const mediaItem = createMediaItemFromInlineData(part.inlineData);
-          mediaItems.push(mediaItem);
+          if (mediaItem) {
+            mediaItems.push(mediaItem);
+            hasImageResponse = true;
+          }
         }
+      }
+      
+      // If user requested an image but no valid image was returned, add an error message
+      if (hasImageRequest && !hasImageResponse) {
+        const errorMsg = "Google's API did not return a valid image. This could be due to content policy restrictions, rate limiting, or an error in the image generation process.";
+        responseText += `\n\n**Error generating image**: ${errorMsg}\n\nFull API response: ${JSON.stringify(data, null, 2)}`;
       }
       
       return { text: responseText, media: mediaItems };
