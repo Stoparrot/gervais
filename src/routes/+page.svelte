@@ -623,19 +623,33 @@
   .chat-header {
     display: flex;
     align-items: center;
+    justify-content: space-between;
     padding: 1rem;
     border-bottom: 1px solid var(--border-color);
     gap: 1rem;
+    position: relative;
+    
+    /* Make sure buttons stay clickable above the title */
+    :global(button) {
+      z-index: 2;
+      position: relative;
+    }
   }
   
   .chat-title {
     margin: 0;
     font-size: 1.25rem;
     font-weight: 600;
-    flex: 1;
+    position: absolute;
+    left: 0;
+    right: 0;
+    text-align: center;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+    z-index: 1;
+    pointer-events: none;
+    padding: 0 3rem; /* Add padding to prevent overlap with buttons */
   }
   
   .chat-messages {
