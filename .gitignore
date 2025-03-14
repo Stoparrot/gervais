@@ -1,5 +1,7 @@
 test-results
 node_modules
+playwright-report/index.html
+playwright-report/data/
 
 # Output
 .output
@@ -8,6 +10,7 @@ node_modules
 .wrangler
 /.svelte-kit
 /build
+
 
 # OS
 .DS_Store
