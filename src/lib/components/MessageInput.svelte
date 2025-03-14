@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { createEventDispatcher } from 'svelte';
+  import { createEventDispatcher, onMount } from 'svelte';
   import SendIcon from 'lucide-svelte/icons/send';
   import MicIcon from 'lucide-svelte/icons/mic';
   import VideoIcon from 'lucide-svelte/icons/video';
@@ -28,6 +28,31 @@
   }>();
   
   let inputElement: HTMLTextAreaElement;
+  let isMobile = false;
+  
+  onMount(() => {
+    // Check if on mobile device
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    
+    // Set up keyboard handling for mobile
+    if (inputElement && isMobile) {
+      inputElement.setAttribute('enterkeyhint', 'done');
+    }
+    
+    return () => {
+      window.removeEventListener('resize', checkMobile);
+    };
+  });
+  
+  function checkMobile() {
+    isMobile = window.innerWidth < 768;
+    
+    // Update enterkeyhint if needed
+    if (inputElement) {
+      inputElement.setAttribute('enterkeyhint', isMobile ? 'done' : 'send');
+    }
+  }
   
   // Auto-resize the textarea based on content
   function autoResize() {
@@ -56,9 +81,23 @@
   
   // Handle keyboard events
   function handleKeydown(event: KeyboardEvent) {
-    if (event.key === 'Enter' && !event.shiftKey) {
+    // On mobile devices, always allow Return key to add a new line
+    // Only send on Enter key when not on mobile and not pressing shift
+    
+    if (event.key === 'Enter' && !event.shiftKey && !isMobile) {
       event.preventDefault();
       handleSubmit();
+    }
+  }
+  
+  // Handle keyboard events like Done button on mobile
+  function handleKeyup(event: KeyboardEvent) {
+    // Handle 'Done' button on mobile
+    if (isMobile && event.key === 'Enter' && event.target instanceof HTMLTextAreaElement) {
+      if (event.target.getAttribute('enterkeyhint') === 'done') {
+        // This means the "Done" button was pressed
+        handleSubmit();
+      }
     }
   }
   
@@ -136,8 +175,10 @@
         {placeholder}
         {disabled}
         on:keydown={handleKeydown}
+        on:keyup={handleKeyup}
         on:input={autoResize}
         rows="2"
+        enterkeyhint={isMobile ? 'done' : 'send'}
       ></textarea>
     </div>
     
@@ -237,6 +278,11 @@
     display: flex;
     flex-direction: column;
     gap: 8px;
+    
+    @media (max-width: 768px) {
+      gap: 4px; /* Smaller gap on mobile to save space */
+      padding-bottom: env(safe-area-inset-bottom, 0px); /* iOS safe area support */
+    }
   }
   
   .input-bubble {
@@ -248,6 +294,12 @@
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
     overflow: hidden;
     padding: 8px 8px;
+    
+    @media (max-width: 768px) {
+      border-radius: 18px; /* Slightly smaller radius on mobile */
+      margin: 0 4px; /* Add some side margin on mobile */
+      padding: 6px 6px; /* Smaller padding on mobile */
+    }
   }
   
   .actions-bar {
@@ -380,6 +432,10 @@
     display: flex;
     padding: 4px 8px;
     
+    @media (max-width: 768px) {
+      padding: 3px 6px; /* Smaller padding on mobile */
+    }
+    
     textarea {
       flex: 1;
       resize: none;
@@ -402,6 +458,7 @@
       @media (max-width: 768px) {
         font-size: 1.0625rem; /* Slightly larger on mobile */
         min-height: 52px; /* Increased for mobile */
+        padding: 4px; /* Smaller padding on mobile */
       }
     }
   }

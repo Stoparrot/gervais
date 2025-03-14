@@ -42,8 +42,19 @@
     updateIsMobile();
     window.addEventListener('resize', updateIsMobile);
     
+    // Handle mobile viewport height to account for browser chrome
+    function setMobileHeight() {
+      // Set a CSS variable with the viewport height
+      document.documentElement.style.setProperty('--vh', `${window.innerHeight * 0.01}px`);
+    }
+    
+    // Set on mount and when resizing
+    setMobileHeight();
+    window.addEventListener('resize', setMobileHeight);
+    
     return () => {
       window.removeEventListener('resize', updateIsMobile);
+      window.removeEventListener('resize', setMobileHeight);
     };
   });
   
@@ -586,7 +597,8 @@
 <style lang="scss">
   .chat-container {
     display: flex;
-    height: 100vh;
+    height: 100vh; /* Fallback for browsers that don't support custom properties */
+    height: calc(var(--vh, 1vh) * 100); /* Use the custom viewport height */
     width: 100%;
     overflow: hidden;
   }
