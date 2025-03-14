@@ -186,6 +186,7 @@
       transform: translateX(-100%);
       width: 85%;
       max-width: 320px;
+      padding-top: env(safe-area-inset-top);
       
       &.expanded {
         transform: translateX(0);
@@ -246,7 +247,11 @@
       background-size: 1em;
       text-align: center;
       padding-left: 24px;
+      padding-right: 24px;
       font-weight: 500;
+      display: flex;
+      align-items: center;
+      justify-content: center;
       
       &:focus {
         outline: none;

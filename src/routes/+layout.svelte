@@ -8,11 +8,17 @@
   onMount(async () => {
     // Load local models on app initialization
     await initializeModels();
+    
+    // Set CSS variables for safe areas
+    document.documentElement.style.setProperty('--sat', 'env(safe-area-inset-top)');
+    document.documentElement.style.setProperty('--sab', 'env(safe-area-inset-bottom)');
+    document.documentElement.style.setProperty('--sal', 'env(safe-area-inset-left)');
+    document.documentElement.style.setProperty('--sar', 'env(safe-area-inset-right)');
   });
 </script>
 
 <svelte:head>
-  <title>LLM Chat App</title>
+  <title>Gervais</title>
   <meta name="description" content="A versatile LLM chat interface" />
 </svelte:head>
 

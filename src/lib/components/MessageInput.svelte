@@ -245,6 +245,11 @@
         color: white;
         border-color: var(--accent-color);
       }
+      
+      @media (max-width: 768px) {
+        padding: 5px 10px;
+        font-size: 0.875rem;
+      }
     }
   }
   
@@ -323,6 +328,11 @@
       &:disabled {
         opacity: 0.7;
       }
+      
+      @media (max-width: 768px) {
+        font-size: 1.0625rem; /* Slightly larger on mobile */
+        min-height: 27px;
+      }
     }
     
     .actions {
@@ -332,6 +342,20 @@
       
       :global(.active) {
         color: var(--accent-color);
+      }
+      
+      @media (max-width: 768px) {
+        gap: 6px; /* Slightly larger gap on mobile */
+        
+        :global(button) {
+          width: 34px; /* Larger button size on mobile */
+          height: 34px;
+          
+          :global(svg) {
+            width: 21px; /* Larger icons on mobile */
+            height: 21px;
+          }
+        }
       }
     }
   }
