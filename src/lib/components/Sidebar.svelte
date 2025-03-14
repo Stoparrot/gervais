@@ -7,7 +7,7 @@
   import { googleModels } from '$lib/services/llm/google';
   import type { LLMModel } from '$lib/types';
   import { X, ChevronLeft, MessageSquare } from 'lucide-svelte';
-  import NotebookPen from 'lucide-svelte/icons/notebook-pen';
+  import Plus from 'lucide-svelte/icons/plus';
   import Button from './Button.svelte';
   
   export let isMobile = false;
@@ -140,7 +140,7 @@
       on:click={handleNewChat}
       class="new-chat-button"
     >
-      <NotebookPen size={16} />
+      <Plus size={16} />
       <span>New Chat</span>
     </Button>
     
@@ -277,6 +277,7 @@
     justify-content: center;
     gap: 0.5rem;
     padding: 0.6rem 0;
+    border-width: 2px;
     
     span {
       font-size: 0.875rem;

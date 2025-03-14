@@ -8,7 +8,7 @@
   import MessageInput from '$lib/components/MessageInput.svelte';
   import Button from '$lib/components/Button.svelte';
   import Settings from '$lib/components/Settings.svelte';
-  import NotebookPen from 'lucide-svelte/icons/notebook-pen';
+  import Plus from 'lucide-svelte/icons/plus';
   import SettingsIcon from 'lucide-svelte/icons/settings';
   import Paperclip from 'lucide-svelte/icons/paperclip';
   import ImageIcon from 'lucide-svelte/icons/image';
@@ -524,7 +524,7 @@
           on:click={toggleSidebar}
           aria-label="Open menu"
         >
-          <NotebookPen size={20} />
+          <Plus size={20} />
         </Button>
       {/if}
       
@@ -623,11 +623,18 @@
   .chat-header {
     display: flex;
     align-items: center;
-    justify-content: space-between;
     padding: 1rem;
     border-bottom: 1px solid var(--border-color);
     gap: 1rem;
     position: relative;
+    
+    /* Create a wrapper for each side of the header */
+    &::before, &::after {
+      content: "";
+      width: 40px; /* Width to match buttons */
+      display: flex;
+      z-index: 1;
+    }
     
     /* Make sure buttons stay clickable above the title */
     :global(button) {
