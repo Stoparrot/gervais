@@ -223,7 +223,7 @@
           class="send-button"
           aria-label="Send message"
         >
-          <CircleArrowUp size={20} />
+          <CircleArrowUp size={20} strokeWidth={2.5} />
         </Button>
       </div>
     </div>
@@ -444,7 +444,7 @@
     align-items: center;
     
     :global(.send-button) {
-      color: var(--accent-color, #3b82f6);
+      color: var(--dark-accent-color, #1a56db);
       transition: transform 0.2s ease;
       
       &:hover:not(:disabled) {
