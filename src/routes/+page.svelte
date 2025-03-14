@@ -650,6 +650,7 @@
     z-index: 1;
     pointer-events: none;
     padding: 0 3rem; /* Add padding to prevent overlap with buttons */
+    user-select: none; /* Make text unselectable */
   }
   
   .chat-messages {
