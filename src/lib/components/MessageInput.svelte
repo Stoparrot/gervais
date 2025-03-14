@@ -35,11 +35,6 @@
     checkMobile();
     window.addEventListener('resize', checkMobile);
     
-    // Set up keyboard handling for mobile
-    if (inputElement && isMobile) {
-      inputElement.setAttribute('enterkeyhint', 'done');
-    }
-    
     return () => {
       window.removeEventListener('resize', checkMobile);
     };
@@ -47,11 +42,6 @@
   
   function checkMobile() {
     isMobile = window.innerWidth < 768;
-    
-    // Update enterkeyhint if needed
-    if (inputElement) {
-      inputElement.setAttribute('enterkeyhint', isMobile ? 'done' : 'send');
-    }
   }
   
   // Auto-resize the textarea based on content
@@ -81,23 +71,10 @@
   
   // Handle keyboard events
   function handleKeydown(event: KeyboardEvent) {
-    // On mobile devices, always allow Return key to add a new line
-    // Only send on Enter key when not on mobile and not pressing shift
-    
+    // Always allow Return key to add a new line, never send the message with Enter key on mobile
     if (event.key === 'Enter' && !event.shiftKey && !isMobile) {
       event.preventDefault();
       handleSubmit();
-    }
-  }
-  
-  // Handle keyboard events like Done button on mobile
-  function handleKeyup(event: KeyboardEvent) {
-    // Handle 'Done' button on mobile
-    if (isMobile && event.key === 'Enter' && event.target instanceof HTMLTextAreaElement) {
-      if (event.target.getAttribute('enterkeyhint') === 'done') {
-        // This means the "Done" button was pressed
-        handleSubmit();
-      }
     }
   }
   
@@ -175,10 +152,8 @@
         {placeholder}
         {disabled}
         on:keydown={handleKeydown}
-        on:keyup={handleKeyup}
         on:input={autoResize}
         rows="2"
-        enterkeyhint={isMobile ? 'done' : 'send'}
       ></textarea>
     </div>
     
@@ -245,6 +220,7 @@
           size="sm"
           disabled={disabled || (!value.trim() && mediaItems.length === 0)}
           on:click={handleSubmit}
+          class="send-button"
           aria-label="Send message"
         >
           <SendIcon size={18} />
@@ -459,6 +435,32 @@
         font-size: 1.0625rem; /* Slightly larger on mobile */
         min-height: 52px; /* Increased for mobile */
         padding: 4px; /* Smaller padding on mobile */
+      }
+    }
+  }
+  
+  .right-actions {
+    display: flex;
+    align-items: center;
+    
+    :global(.send-button) {
+      background-color: var(--accent-color-light, rgba(0, 0, 0, 0.1));
+      color: var(--accent-color, #3b82f6);
+      border-radius: 50%;
+      transition: background-color 0.2s ease, transform 0.2s ease;
+      
+      &:hover:not(:disabled) {
+        background-color: var(--accent-color-light-hover, rgba(0, 0, 0, 0.15));
+        transform: scale(1.05);
+      }
+      
+      &:active:not(:disabled) {
+        transform: scale(0.95);
+      }
+      
+      &:disabled {
+        opacity: 0.5;
+        background-color: var(--accent-color-light, rgba(0, 0, 0, 0.05));
       }
     }
   }
