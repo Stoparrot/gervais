@@ -518,7 +518,7 @@
       {/if}
       
       <h1 class="chat-title">
-        <!-- Removed title text -->
+        {$activeChat?.model.name || 'AI Assistant'}
       </h1>
       
       <Button

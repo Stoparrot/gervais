@@ -27,7 +27,7 @@ export let localModels: LLMModel[] = [];
 export let allModels: LLMModel[] = [...cloudModels];
 
 // Default model to use
-export const defaultModel: LLMModel = openaiModels[0]; // GPT-4
+export const defaultModel: LLMModel = googleModels[0]; // Gemini 2.0 Flash
 
 // Initialize models
 export async function initializeModels() {
