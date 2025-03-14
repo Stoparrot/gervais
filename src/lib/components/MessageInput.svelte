@@ -164,10 +164,6 @@
         on:keydown={handleKeydown}
         on:input={autoResize}
         rows="2"
-        autocomplete="off"
-        autocorrect="off"
-        autocapitalize="off"
-        spellcheck="true"
         enterkeyhint="enter"
       ></textarea>
     </div>
