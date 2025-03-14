@@ -6,7 +6,7 @@
   import { openaiModels } from '$lib/services/llm/openai';
   import { googleModels } from '$lib/services/llm/google';
   import type { LLMModel } from '$lib/types';
-  import { X, ChevronLeft } from 'lucide-svelte';
+  import { X, ChevronLeft, MessageSquare } from 'lucide-svelte';
   import NotebookPen from 'lucide-svelte/icons/notebook-pen';
   import Button from './Button.svelte';
   
@@ -81,7 +81,7 @@
 <aside class="sidebar" class:expanded={isExpanded}>
   <div class="sidebar-header">
     <div class="logo-container">
-      <img src="{import.meta.env.DEV ? '/logo.svg' : '/gervais/logo.svg'}" alt="Gervais Logo" class="logo" />
+      <MessageSquare size={24} class="logo" />
       <h2>Gervais</h2>
     </div>
     

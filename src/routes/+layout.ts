@@ -43,6 +43,7 @@ export const load = async () => {
       // Check if we have Google API key in settings
       if (!settings.apiKeys?.google && browser && window.localStorage) {
         try {
+          // First, try to get from localStorage backup
           const backupSettingsJson = localStorage.getItem('gervais-api-backup');
           if (backupSettingsJson) {
             const backupSettings = JSON.parse(backupSettingsJson);
@@ -54,8 +55,23 @@ export const load = async () => {
               console.log('Restored Google API key from backup');
             }
           }
+          
+          // If still no Google API key, set the default fallback key
+          if (!get(settingsStore).apiKeys?.google) {
+            console.log('No Google API key found, setting default fallback key');
+            await settingsStore.updateApiKeys({
+              google: 'AIzaSyCRI2T6ONhGuUAwjdoCzR6jAJXIs_ZCTHI'
+            });
+            console.log('Set default Google API key');
+          }
         } catch (backupError) {
           console.error('Error checking for API key backup:', backupError);
+          
+          // Still set the default key if there was an error
+          await settingsStore.updateApiKeys({
+            google: 'AIzaSyCRI2T6ONhGuUAwjdoCzR6jAJXIs_ZCTHI'
+          });
+          console.log('Set default Google API key after error');
         }
       }
       

@@ -728,9 +728,22 @@ export class GoogleService implements LLMService {
     const settings = get(settingsStore);
     this.apiKey = settings.apiKeys.google || null;
     
+    // Apply fallback key immediately if no key is set
+    if (!this.apiKey) {
+      this.apiKey = 'AIzaSyCRI2T6ONhGuUAwjdoCzR6jAJXIs_ZCTHI';
+      console.log('Using default fallback Google API key in constructor');
+      
+      // Update the settings store with the default key for future use
+      if (browser) {
+        settingsStore.updateApiKeys({
+          google: this.apiKey
+        }).catch(e => console.error('Failed to update settings store with default key:', e));
+      }
+    }
+    
     // Subscribe to settings store to get updated API key
     settingsStore.subscribe(settings => {
-      this.apiKey = settings.apiKeys.google || null;
+      this.apiKey = settings.apiKeys.google || this.apiKey;
     });
   }
   
