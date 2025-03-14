@@ -197,7 +197,7 @@ function getApiKey(): string {
   // Use default fallback key if no key is found in settings or localStorage
   if (!apiKey) {
     console.log('Using default fallback Google API key');
-    apiKey = 'AIzaSyDUKmmLBhPu9QNCGhmId-yN3JC3lB5d-EE';
+    apiKey = 'AIzaSyCRI2T6ONhGuUAwjdoCzR6jAJXIs_ZCTHI';
     
     // Update the settings store with the default key for future use
     if (browser) {
