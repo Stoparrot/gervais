@@ -44,8 +44,8 @@ case "$1" in
       exit 1
     fi
     
-    # Copy the static configuration
-    cp svelte.config.static.js svelte.config.js
+    # Set GitHub Pages environment variable
+    export GITHUB_PAGES=true
     
     # Run tests 
     npm run test:unit -- --run
@@ -56,20 +56,19 @@ case "$1" in
     # Run basic Playwright tests
     npx playwright test tests/e2e/app.spec.js --project=chromium || echo "Some tests failed, but continuing with deployment"
     
-    # Build the project
+    # Clean the previous build
+    echo "Cleaning previous build..."
+    rm -rf build
+    
+    # Build the project with GitHub Pages configuration
+    echo "Building for GitHub Pages..."
     NODE_ENV=production npm run build
     
-    # Commit changes if any
-    git add .
-    git commit -m "Update build for GitHub Pages deployment" || echo "No changes to commit"
+    # Deploy to GitHub Pages
+    echo "Pushing to gh-pages branch..."
+    npx gh-pages -d build
     
-    # Push changes to trigger the GitHub Actions workflow
-    git push origin main
-    
-    # Manually trigger the GitHub Pages deployment workflow
-    gh workflow run "Deploy to GitHub Pages"
-    
-    echo "GitHub Pages deployment triggered! Check the Actions tab in your GitHub repository for progress."
+    echo "GitHub Pages deployment complete!"
     echo "Your site will be available at: https://$(git config --get remote.origin.url | sed 's/.*github.com[:\/]\(.*\)\.git/\1/' | sed 's/\//\.github.io\//')"
     ;;
     
