@@ -11,7 +11,7 @@ const config = {
 			precompress: false,
 			strict: true
 		}),
-		// Remove base path for Vercel deployment
+		// No base path for Vercel deployment - empty base path
 		paths: {
 			base: ''
 		}
