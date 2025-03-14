@@ -79,4 +79,42 @@ test.describe('Settings Panel', () => {
     // For this test to pass, we just need to find either settings text or form elements
     expect(settingsText > 0 || formElements > 0).toBeTruthy();
   });
+  
+  test('settings button opens settings popup', async ({ page }) => {
+    await loadApp(page);
+    
+    // Wait for the UI to fully render
+    await page.waitForTimeout(1000);
+    
+    // Find the settings button by its aria-label
+    const settingsButton = page.locator('button[aria-label="Open settings"]');
+    
+    // Verify the settings button exists
+    await expect(settingsButton).toBeVisible();
+    
+    // Take a screenshot before clicking the button
+    await page.screenshot({ path: 'test-results/before-settings-click.png' });
+    
+    // Click the settings button
+    await settingsButton.click();
+    
+    // Wait for the settings popup to appear
+    await page.waitForTimeout(500);
+    
+    // Take a screenshot after clicking the button
+    await page.screenshot({ path: 'test-results/after-settings-click.png' });
+    
+    // Verify that the settings modal appeared
+    const settingsModal = page.locator('.settings-overlay');
+    await expect(settingsModal).toBeVisible();
+    
+    // Verify that we see the settings header text
+    const settingsHeader = page.locator('.settings-header h2');
+    await expect(settingsHeader).toBeVisible();
+    await expect(settingsHeader).toHaveText('Settings');
+    
+    // Verify that the API Keys form is visible
+    const apiKeysSection = page.locator('.settings-content h3:has-text("API Keys")');
+    await expect(apiKeysSection).toBeVisible();
+  });
 }); 
