@@ -4,7 +4,6 @@
   import MicIcon from 'lucide-svelte/icons/mic';
   import CameraIcon from 'lucide-svelte/icons/camera';
   import Paperclip from 'lucide-svelte/icons/paperclip';
-  import ImageIcon from 'lucide-svelte/icons/image';
   import Button from './Button.svelte';
   import type { MediaItem } from '$lib/types';
   import { activeChat } from '$lib/stores/chatStore';
@@ -97,20 +96,6 @@
     dispatch('toggleTool', { tool, enabled: newState });
   }
   
-  // Test image generation
-  function testImageGeneration() {
-    if (disabled) return;
-    
-    if ($activeChat?.model?.provider !== 'google' || !$activeChat?.model?.supportsImageGeneration) {
-      alert('Please select a Google Gemini model that supports image generation');
-      return;
-    }
-    
-    // Set a prompt that explicitly requests image generation using Gemini syntax
-    value = 'Generate an image of a fluffy sheep standing in a green meadow with flowers. Make sure to include an image in your response.';
-    handleSubmit();
-  }
-  
   // Update textarea height when value changes
   $: if (inputElement) {
     autoResize();
@@ -118,20 +103,6 @@
 </script>
 
 <div class="message-input-container">
-  <div class="tools-bar">
-    {#each Object.entries(tools) as [tool, enabled]}
-      <button
-        type="button"
-        class="tool-button"
-        class:enabled
-        on:click={() => toggleTool(tool)}
-        aria-label="Toggle {tool}"
-      >
-        {tool}
-      </button>
-    {/each}
-  </div>
-  
   <div class="media-preview">
     {#each mediaItems as media}
       <div class="media-item">
@@ -189,7 +160,7 @@
       <Button
         variant="icon"
         size="sm"
-        disabled={disabled || isCapturingVideo}
+        disabled={disabled || isRecording}
         on:click={toggleAudioRecording}
         aria-label={isRecording ? 'Stop recording' : 'Start recording'}
       >
@@ -210,18 +181,6 @@
         </div>
       </Button>
       
-      {#if $activeChat?.model?.provider === 'google' && $activeChat?.model?.supportsImageGeneration}
-        <Button
-          variant="icon"
-          size="sm"
-          disabled={disabled}
-          on:click={testImageGeneration}
-          aria-label="Test image generation"
-        >
-          <ImageIcon size={18} />
-        </Button>
-      {/if}
-      
       <Button
         variant="icon"
         size="sm"
@@ -232,6 +191,20 @@
         <SendIcon size={18} />
       </Button>
     </div>
+  </div>
+  
+  <div class="tools-bar">
+    {#each Object.entries(tools) as [tool, enabled]}
+      <button
+        type="button"
+        class="tool-button"
+        class:enabled
+        on:click={() => toggleTool(tool)}
+        aria-label="Toggle {tool}"
+      >
+        {tool}
+      </button>
+    {/each}
   </div>
 </div>
 

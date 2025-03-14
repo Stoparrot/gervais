@@ -141,7 +141,7 @@
       class="new-chat-button"
     >
       <NotebookPen size={16} />
-      New Chat
+      <span>New Chat</span>
     </Button>
     
     <div class="chats-list">
@@ -216,12 +216,6 @@
         font-weight: 600;
       }
     }
-    
-    .collapse-button {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
   }
   
   .sidebar-content {
@@ -250,6 +244,9 @@
       background-repeat: no-repeat;
       background-position: right 0.5rem center;
       background-size: 1em;
+      text-align: center;
+      padding-left: 24px;
+      font-weight: 500;
       
       &:focus {
         outline: none;
@@ -262,6 +259,11 @@
         color: var(--text-color);
         background-color: var(--bg-color);
         border-bottom: 1px solid var(--border-color);
+        text-align: center;
+      }
+      
+      option {
+        text-align: center;
       }
     }
   }
@@ -270,6 +272,26 @@
     border-radius: 12px;
     font-weight: 600;
     box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    padding: 0.6rem 0;
+    
+    span {
+      font-size: 0.875rem;
+    }
+    
+    &:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 3px 5px rgba(0, 0, 0, 0.15);
+      background-color: color-mix(in srgb, var(--accent-color) 90%, white 10%);
+    }
+    
+    &:active {
+      transform: translateY(0);
+      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+    }
   }
   
   .chats-list {
