@@ -6,7 +6,7 @@
   import { openaiModels } from '$lib/services/llm/openai';
   import { googleModels } from '$lib/services/llm/google';
   import type { LLMModel } from '$lib/types';
-  import { Plus, X, ChevronLeft, RefreshCw } from 'lucide-svelte';
+  import { X, ChevronLeft } from 'lucide-svelte';
   import NotebookPen from 'lucide-svelte/icons/notebook-pen';
   import Button from './Button.svelte';
   
@@ -18,25 +18,15 @@
   }>();
   
   let selectedModelId = $activeChat?.model.id || 'claude-3-5-sonnet';
-  let isLoadingModels = false;
   
   onMount(async () => {
     // Initialize local models on component mount
-    isLoadingModels = true;
     await initializeModels();
-    isLoadingModels = false;
   });
   
   // Update the selected model when active chat changes
   $: if ($activeChat) {
     selectedModelId = $activeChat.model.id;
-  }
-  
-  // Refresh local models from Ollama
-  async function refreshLocalModels() {
-    isLoadingModels = true;
-    await initializeModels();
-    isLoadingModels = false;
   }
   
   function handleNewChat() {
@@ -141,17 +131,6 @@
           {/each}
         </optgroup>
       </select>
-      <Button
-        variant="icon"
-        size="sm"
-        on:click={refreshLocalModels}
-        disabled={isLoadingModels}
-        aria-label="Refresh models"
-      >
-        <span class:loading={isLoadingModels}>
-          <RefreshCw size={16} />
-        </span>
-      </Button>
     </div>
     
     <Button
@@ -336,16 +315,6 @@
       white-space: nowrap;
       font-size: 0.875rem;
       font-weight: 500;
-    }
-  }
-  
-  .loading {
-    animation: spin 1s linear infinite;
-  }
-  
-  @keyframes spin {
-    to {
-      transform: rotate(360deg);
     }
   }
 </style> 
