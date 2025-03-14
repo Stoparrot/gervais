@@ -111,6 +111,9 @@ vi.mock('lucide-svelte', () => {
     })),
     RefreshCw: vi.fn().mockImplementation(() => ({
       $$render: () => '<svg>RefreshCw</svg>'
+    })),
+    MessageSquare: vi.fn().mockImplementation(() => ({
+      $$render: () => '<svg>MessageSquare</svg>'
     }))
   };
 });
