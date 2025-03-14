@@ -136,7 +136,8 @@
         {placeholder}
         {disabled}
         on:keydown={handleKeydown}
-        rows="1"
+        on:input={autoResize}
+        rows="2"
       ></textarea>
     </div>
     
@@ -246,7 +247,7 @@
     border-radius: 20px;
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
     overflow: hidden;
-    padding: 8px 4px;
+    padding: 8px 8px;
   }
   
   .actions-bar {
@@ -385,13 +386,14 @@
       border: none;
       outline: none;
       background: transparent;
-      min-height: 24px;
-      max-height: 150px;
-      padding: 4px;
+      min-height: 48px; /* Increased to accommodate at least two lines */
+      max-height: 200px; /* Increased to allow more expansion */
+      padding: 6px;
       font-family: inherit;
       font-size: 1rem;
       color: var(--text-color);
       width: 100%;
+      line-height: 1.4; /* Added to ensure proper line spacing */
       
       &:disabled {
         opacity: 0.7;
@@ -399,7 +401,7 @@
       
       @media (max-width: 768px) {
         font-size: 1.0625rem; /* Slightly larger on mobile */
-        min-height: 27px;
+        min-height: 52px; /* Increased for mobile */
       }
     }
   }
