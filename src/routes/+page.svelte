@@ -579,7 +579,7 @@
 <!-- Move the Settings component to an isolated DOM node that doesn't cause a re-render of the parent -->
 {#if isSettingsOpen}
   <div class="settings-portal">
-    <Settings on:close={() => isSettingsOpen = false} />
+    <Settings isOpen={true} on:close={() => isSettingsOpen = false} />
   </div>
 {/if}
 
