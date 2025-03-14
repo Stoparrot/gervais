@@ -202,9 +202,21 @@
 
 <!-- Image Modal -->
 {#if showImageModal}
-  <div class="image-modal-overlay" on:click={closeImageModal} on:keydown={(e) => e.key === 'Escape' && closeImageModal()} role="button" tabindex="0">
-    <div class="image-modal-content" on:click|stopPropagation={() => {}}>
-      <button class="close-modal" on:click={closeImageModal}>×</button>
+  <div 
+    class="image-modal-overlay" 
+    on:click={closeImageModal} 
+    on:keydown={(e) => e.key === 'Escape' && closeImageModal()} 
+    role="dialog" 
+    aria-modal="true"
+    tabindex="0"
+  >
+    <div 
+      class="image-modal-content" 
+      on:click|stopPropagation={() => {}} 
+      on:keydown|stopPropagation={() => {}}
+      role="presentation"
+    >
+      <button class="close-modal" on:click={closeImageModal} aria-label="Close image preview">×</button>
       <img src={modalImageUrl} alt={modalAltText} />
       <div class="modal-caption">{modalAltText}</div>
     </div>
