@@ -8,7 +8,7 @@
   import MessageInput from '$lib/components/MessageInput.svelte';
   import Button from '$lib/components/Button.svelte';
   import Settings from '$lib/components/Settings.svelte';
-  import MenuIcon from 'lucide-svelte/icons/menu';
+  import NotebookPen from 'lucide-svelte/icons/notebook-pen';
   import SettingsIcon from 'lucide-svelte/icons/settings';
   import Paperclip from 'lucide-svelte/icons/paperclip';
   import ImageIcon from 'lucide-svelte/icons/image';
@@ -513,12 +513,12 @@
           on:click={toggleSidebar}
           aria-label="Open menu"
         >
-          <MenuIcon size={20} />
+          <NotebookPen size={20} />
         </Button>
       {/if}
       
       <h1 class="chat-title">
-        {$activeChat?.title || 'New Chat'}
+        <!-- Removed title text -->
       </h1>
       
       <Button
@@ -579,7 +579,7 @@
 <!-- Move the Settings component to an isolated DOM node that doesn't cause a re-render of the parent -->
 {#if isSettingsOpen}
   <div class="settings-portal">
-    <Settings isOpen={true} on:close={() => isSettingsOpen = false} />
+    <Settings on:close={() => isSettingsOpen = false} />
   </div>
 {/if}
 
