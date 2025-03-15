@@ -907,11 +907,14 @@ async function handleSearchResults(
       }
     }
     
-    // Replace the search placeholder with the actual search-informed text
+    // Extract query from search results
+    const query = searchResults.split('"')[1] || "unknown query";
+    
+    // Replace the search placeholder with the search indicator and the search-informed text
     const updatedText = currentText.replace(
-      `\n\n[🔍 Searching for: ${searchResults.split('"')[1]}]\n\n`,
-      `\n\n[🔍 Search results incorporated into response]\n\n`
-    ) + searchInformedText;
+      `\n\n[🔍 Searching for: ${query}]\n\n`,
+      `\n\n[🔍 Search results for "${query}"]\n\n${searchInformedText}\n\n`
+    );
     
     // Update the UI with the search-informed response
     onChunk(updatedText, currentMediaItems);
@@ -1186,12 +1189,14 @@ async function handleSearchResultsNonStreaming(
       }
     }
     
-    // Replace the search placeholder with the actual search-informed text
+    // Extract query from search results
     const query = searchResults.split('"')[1] || "unknown query";
+    
+    // Replace the search placeholder with the search indicator and the search-informed text
     const updatedText = currentText.replace(
       `\n\n[🔍 Searching for: ${query}]\n\n`,
-      `\n\n[🔍 Search results incorporated]\n\n`
-    ) + searchInformedText;
+      `\n\n[🔍 Search results for "${query}"]\n\n${searchInformedText}\n\n`
+    );
     
     return updatedText;
   } catch (error) {
