@@ -437,7 +437,9 @@ export async function streamCompletion(
               for (const part of parts) {
                 if (part.text) {
                   newText += part.text;
-                } else if (part.inlineData) {
+                } 
+                // replaced 'else if'so responses with image and text show both
+                if (part.inlineData) {
                   // Log to help debug image generation issues
                   console.log(`Received inlineData with mimeType: ${part.inlineData.mimeType}, data length: ${part.inlineData.data?.length || 0}`);
                   
