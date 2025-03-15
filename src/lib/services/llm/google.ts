@@ -105,8 +105,60 @@ export const googleModels = [
     supportsThinking: true,
     supportsMultimodal: true, // For accepting images as input
     supportsImageGeneration: true, // Also supports generating images
+  },
+  {
+    id: 'gemini-2.0-flash',
+    name: 'Gemini 2.0 Flash (Search)',
+    provider: 'google' as const,
+    description: 'Fast model with web search capabilities',
+    isLocal: false,
+    maxTokens: 32768,
+    supportsStreaming: true,
+    supportsFiles: true,
+    supportsThinking: true,
+    supportsMultimodal: true,
+    supportsImageGeneration: false, // Regular model doesn't support image generation
   }
 ];
+
+// Hard-coded Google Search API key
+const GOOGLE_SEARCH_API_KEY = 'AIzaSyDu7iMRbtRAycUVnpim9eXKq8PZIp-uHlU';
+const GOOGLE_SEARCH_ENGINE_ID = '94896e31bc89e47b1'; // Default search engine ID
+
+// Function to perform a Google search using the Custom Search API
+async function performGoogleSearch(query: string): Promise<string> {
+  try {
+    console.log('Performing Google search for:', query);
+    
+    const apiUrl = `https://www.googleapis.com/customsearch/v1?key=${GOOGLE_SEARCH_API_KEY}&cx=${GOOGLE_SEARCH_ENGINE_ID}&q=${encodeURIComponent(query)}`;
+    const response = await fetch(apiUrl);
+    
+    if (!response.ok) {
+      throw new Error(`Google Search API error: ${response.statusText}`);
+    }
+    
+    const data = await response.json();
+    console.log('Google search results:', data);
+    
+    // Format search results into a readable format
+    let formattedResults = `Search results for "${query}":\n\n`;
+    
+    if (data.items && data.items.length > 0) {
+      data.items.slice(0, 5).forEach((item, index) => {
+        formattedResults += `${index + 1}. ${item.title}\n`;
+        formattedResults += `   ${item.link}\n`;
+        formattedResults += `   ${item.snippet}\n\n`;
+      });
+    } else {
+      formattedResults += 'No results found.';
+    }
+    
+    return formattedResults;
+  } catch (error) {
+    console.error('Error performing Google search:', error);
+    return `Error performing search: ${error.message}`;
+  }
+}
 
 // Convert file data URL to base64
 function dataURLToBase64(dataURL: string): string {
@@ -291,19 +343,23 @@ export async function streamCompletion(
     const apiKey = getApiKey();
     const googleMessages = convertToGoogleMessages(messages);
     
-    // Ensure we're using the correct model ID
-    console.log('Using model:', modelId);
-    if (modelId !== 'gemini-2.0-flash-exp') {
-      console.warn('Warning: Expected to use gemini-2.0-flash-exp but got:', modelId);
+    // If search is enabled, use gemini-2.0-flash instead of gemini-2.0-flash-exp
+    let effectiveModelId = modelId;
+    if (enableSearch && modelId === 'gemini-2.0-flash-exp') {
+      console.log('Switching to gemini-2.0-flash for search capability');
+      effectiveModelId = 'gemini-2.0-flash';
     }
     
-    console.log('Sending request to Google Gemini API with model:', modelId);
+    // Ensure we're using the correct model ID
+    console.log('Using model:', effectiveModelId);
+    
+    console.log('Sending request to Google Gemini API with model:', effectiveModelId);
     console.log('Messages after conversion:', JSON.stringify(googleMessages, null, 2));
     console.log('Web search enabled:', enableSearch);
     
-    // Always request image generation
-    const shouldRequestImageGeneration = true;
-    console.log('Always requesting image generation');
+    // Always request image generation unless using search (which doesn't support it)
+    const shouldRequestImageGeneration = effectiveModelId === 'gemini-2.0-flash-exp';
+    console.log('Image generation requested:', shouldRequestImageGeneration);
     
     // Create the request body
     const requestBody: GoogleCompletionRequest = {
@@ -311,7 +367,6 @@ export async function streamCompletion(
       generationConfig: {
         temperature: 0.7,
         maxOutputTokens: 2048,
-        responseModalities: ['TEXT', 'IMAGE'], // Always include IMAGE
       },
       safetySettings: [
         {
@@ -333,6 +388,11 @@ export async function streamCompletion(
       ]
     };
     
+    // Add responseModalities for image generation when using the experimental model
+    if (shouldRequestImageGeneration) {
+      requestBody.generationConfig.responseModalities = ['TEXT', 'IMAGE'];
+    }
+    
     // Add Google search tool if search is enabled
     if (enableSearch) {
       console.log('Adding Google search tool to request');
@@ -340,7 +400,6 @@ export async function streamCompletion(
     }
     
     // Log detailed request information for debugging
-    console.log('Image generation requested:', shouldRequestImageGeneration);
     console.log('Request configuration:', JSON.stringify({
       responseModalities: requestBody.generationConfig.responseModalities,
       temperature: requestBody.generationConfig.temperature,
@@ -348,7 +407,7 @@ export async function streamCompletion(
     }, null, 2));
     
     // Log the complete URL for debugging
-    const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${modelId}:streamGenerateContent?key=${apiKey}`;
+    const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${effectiveModelId}:streamGenerateContent?key=${apiKey}`;
     console.log('API URL (without key):', apiUrl.replace(apiKey, 'API_KEY_HIDDEN'));
     
     // Use the streamGenerateContent endpoint which specifically handles streaming
@@ -500,6 +559,39 @@ export async function streamCompletion(
                     const query = functionCall.args.query;
                     console.log('Google search requested with query:', query);
                     newText += `\n\n[🔍 Searching for: ${query}]\n\n`;
+                    
+                    // Notify the user that a search is being performed
+                    onChunk(responseText + newText, mediaItems);
+                    
+                    // Perform actual Google search
+                    try {
+                      const searchResults = await performGoogleSearch(query);
+                      
+                      // Send search results back to the model for processing
+                      const searchResponseText = await handleSearchResults(
+                        effectiveModelId, 
+                        [...googleMessages, {
+                          role: 'model' as const,
+                          parts: [{ text: newText }]
+                        }], 
+                        searchResults,
+                        onChunk,
+                        onError,
+                        responseText,
+                        mediaItems
+                      );
+                      
+                      // Update the full response text with search-informed content
+                      if (searchResponseText) {
+                        responseText = searchResponseText;
+                      }
+                      
+                      // Skip normal processing since we've handled it via search
+                      continue;
+                    } catch (searchError) {
+                      console.error('Error performing search:', searchError);
+                      newText += `\n\nError performing search: ${searchError.message}\n\n`;
+                    }
                   }
                 }
               }
@@ -561,6 +653,39 @@ export async function streamCompletion(
                   const query = functionCall.args.query;
                   console.log('Google search requested with query:', query);
                   newText += `\n\n[🔍 Searching for: ${query}]\n\n`;
+                  
+                  // Notify the user that a search is being performed
+                  onChunk(responseText + newText, mediaItems);
+                  
+                  // Perform actual Google search
+                  try {
+                    const searchResults = await performGoogleSearch(query);
+                    
+                    // Send search results back to the model for processing
+                    const searchResponseText = await handleSearchResults(
+                      effectiveModelId, 
+                      [...googleMessages, {
+                        role: 'model' as const,
+                        parts: [{ text: newText }]
+                      }], 
+                      searchResults,
+                      onChunk,
+                      onError,
+                      responseText,
+                      mediaItems
+                    );
+                    
+                    // Update the full response text with search-informed content
+                    if (searchResponseText) {
+                      responseText = searchResponseText;
+                    }
+                    
+                    // Skip normal processing since we've handled it via search
+                    continue;
+                  } catch (searchError) {
+                    console.error('Error performing search:', searchError);
+                    newText += `\n\nError performing search: ${searchError.message}\n\n`;
+                  }
                 }
               }
             }
@@ -591,38 +716,36 @@ export async function streamCompletion(
   }
 }
 
-// Non-streaming completion API with multimodal support
-export async function completion(
-  modelId: string, 
-  messages: Message[],
-  enableSearch: boolean = false,
-  _fromSendMessage: boolean = false // Internal flag to avoid recursion
-): Promise<{ text: string, media: MediaItem[] }> {
+// New function to handle search results and continue the conversation
+async function handleSearchResults(
+  modelId: string,
+  messages: GoogleMessage[],
+  searchResults: string,
+  onChunk: (text: string, media?: MediaItem[]) => void,
+  onError: (error: Error) => void,
+  currentText: string,
+  currentMediaItems: MediaItem[] = []
+): Promise<string> {
   try {
+    // Add the search results as a "user" message (system messages aren't supported)
+    const messagesWithSearchResults = [
+      ...messages,
+      {
+        role: 'user' as const,
+        parts: [{ 
+          text: `Search results:\n\n${searchResults}\n\nPlease incorporate this information into your response.` 
+        }]
+      }
+    ];
+    
     const apiKey = getApiKey();
-    const googleMessages = convertToGoogleMessages(messages);
     
-    // Ensure we're using the correct model ID
-    console.log('Using model (non-streaming):', modelId);
-    if (modelId !== 'gemini-2.0-flash-exp') {
-      console.warn('Warning: Expected to use gemini-2.0-flash-exp but got:', modelId);
-    }
-    
-    console.log('Sending non-streaming request to Google Gemini API with model:', modelId);
-    console.log('Messages after conversion:', JSON.stringify(googleMessages, null, 2));
-    console.log('Web search enabled:', enableSearch);
-    
-    // Always request image generation
-    const shouldRequestImageGeneration = true;
-    console.log('Always requesting image generation');
-    
-    // Create the request body
+    // Create a follow-up request with search results
     const requestBody: GoogleCompletionRequest = {
-      contents: googleMessages,
+      contents: messagesWithSearchResults,
       generationConfig: {
         temperature: 0.7,
         maxOutputTokens: 2048,
-        responseModalities: ['TEXT', 'IMAGE'], // Always include IMAGE
       },
       safetySettings: [
         {
@@ -644,6 +767,108 @@ export async function completion(
       ]
     };
     
+    // Make request to get search-informed response
+    const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${modelId}:generateContent?key=${apiKey}`;
+    const response = await fetch(apiUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(requestBody),
+    });
+    
+    if (!response.ok) {
+      throw new Error(`Failed to get search-informed response: ${response.statusText}`);
+    }
+    
+    const data: GoogleCompletionResponse = await response.json();
+    
+    // Get the search-informed response text
+    let searchInformedText = '';
+    for (const part of data.candidates[0]?.content?.parts || []) {
+      if (part.text) {
+        searchInformedText += part.text;
+      }
+    }
+    
+    // Replace the search placeholder with the actual search-informed text
+    const updatedText = currentText.replace(
+      `\n\n[🔍 Searching for: ${searchResults.split('"')[1]}]\n\n`,
+      `\n\n[🔍 Search results incorporated into response]\n\n`
+    ) + searchInformedText;
+    
+    // Update the UI with the search-informed response
+    onChunk(updatedText, currentMediaItems);
+    
+    return updatedText;
+  } catch (error) {
+    console.error('Error handling search results:', error);
+    onError(error instanceof Error ? error : new Error(String(error)));
+    return currentText + `\n\nError incorporating search results: ${error.message}\n\n`;
+  }
+}
+
+// Non-streaming completion API with multimodal support
+export async function completion(
+  modelId: string, 
+  messages: Message[],
+  enableSearch: boolean = false,
+  _fromSendMessage: boolean = false // Internal flag to avoid recursion
+): Promise<{ text: string, media: MediaItem[] }> {
+  try {
+    const apiKey = getApiKey();
+    const googleMessages = convertToGoogleMessages(messages);
+    
+    // If search is enabled, use gemini-2.0-flash instead of gemini-2.0-flash-exp
+    let effectiveModelId = modelId;
+    if (enableSearch && modelId === 'gemini-2.0-flash-exp') {
+      console.log('Switching to gemini-2.0-flash for search capability');
+      effectiveModelId = 'gemini-2.0-flash';
+    }
+    
+    // Ensure we're using the correct model ID
+    console.log('Using model (non-streaming):', effectiveModelId);
+    
+    console.log('Sending non-streaming request to Google Gemini API with model:', effectiveModelId);
+    console.log('Messages after conversion:', JSON.stringify(googleMessages, null, 2));
+    console.log('Web search enabled:', enableSearch);
+    
+    // Always request image generation unless using search (which doesn't support it)
+    const shouldRequestImageGeneration = effectiveModelId === 'gemini-2.0-flash-exp';
+    console.log('Image generation requested:', shouldRequestImageGeneration);
+    
+    // Create the request body
+    const requestBody: GoogleCompletionRequest = {
+      contents: googleMessages,
+      generationConfig: {
+        temperature: 0.7,
+        maxOutputTokens: 2048,
+      },
+      safetySettings: [
+        {
+          category: 'HARM_CATEGORY_HARASSMENT',
+          threshold: 'BLOCK_MEDIUM_AND_ABOVE'
+        },
+        {
+          category: 'HARM_CATEGORY_HATE_SPEECH',
+          threshold: 'BLOCK_MEDIUM_AND_ABOVE'
+        },
+        {
+          category: 'HARM_CATEGORY_SEXUALLY_EXPLICIT',
+          threshold: 'BLOCK_MEDIUM_AND_ABOVE'
+        },
+        {
+          category: 'HARM_CATEGORY_DANGEROUS_CONTENT',
+          threshold: 'BLOCK_MEDIUM_AND_ABOVE'
+        }
+      ]
+    };
+    
+    // Add responseModalities for image generation when using the experimental model
+    if (shouldRequestImageGeneration) {
+      requestBody.generationConfig.responseModalities = ['TEXT', 'IMAGE'];
+    }
+    
     // Add Google search tool if search is enabled
     if (enableSearch) {
       console.log('Adding Google search tool to request');
@@ -651,7 +876,6 @@ export async function completion(
     }
     
     // Log detailed request information for debugging
-    console.log('Image generation requested:', shouldRequestImageGeneration);
     console.log('Request configuration:', JSON.stringify({
       responseModalities: requestBody.generationConfig.responseModalities,
       temperature: requestBody.generationConfig.temperature,
@@ -659,7 +883,7 @@ export async function completion(
     }, null, 2));
     
     // Log the complete URL for debugging
-    const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${modelId}:generateContent?key=${apiKey}`;
+    const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${effectiveModelId}:generateContent?key=${apiKey}`;
     console.log('API URL (without key):', apiUrl.replace(apiKey, 'API_KEY_HIDDEN'));
 
     const response = await fetch(apiUrl, {
@@ -771,17 +995,21 @@ export class GoogleService implements LLMService {
       throw new Error('Google API key is required');
     }
     
-    // Ensure we're using the correct model ID
-    console.log('GoogleService.sendMessage using model:', model.id);
-    if (model.id !== 'gemini-2.0-flash-exp') {
-      console.warn('Warning: Expected to use gemini-2.0-flash-exp but got:', model.id);
+    // If search is enabled, use gemini-2.0-flash instead of gemini-2.0-flash-exp
+    let effectiveModelId = model.id;
+    if (options.enableSearch && model.id === 'gemini-2.0-flash-exp') {
+      console.log('Switching to gemini-2.0-flash for search capability');
+      effectiveModelId = 'gemini-2.0-flash';
     }
+    
+    // Ensure we're using the correct model ID
+    console.log('GoogleService.sendMessage using model:', effectiveModelId);
     
     const googleMessages = convertToGoogleMessages(messages);
     
-    // Always request image generation
-    const shouldRequestImageGeneration = true;
-    console.log('Always requesting image generation');
+    // Always request image generation unless using search (which doesn't support it)
+    const shouldRequestImageGeneration = effectiveModelId === 'gemini-2.0-flash-exp';
+    console.log('Image generation requested:', shouldRequestImageGeneration);
     console.log('Web search enabled:', options.enableSearch);
     
     const request: GoogleCompletionRequest = {
@@ -789,7 +1017,6 @@ export class GoogleService implements LLMService {
       generationConfig: {
         temperature: options.temperature || 0.7,
         maxOutputTokens: options.maxTokens || 2048,
-        responseModalities: ['TEXT', 'IMAGE'], // Always include IMAGE
       },
       safetySettings: [
         {
@@ -811,6 +1038,11 @@ export class GoogleService implements LLMService {
       ],
     };
     
+    // Add responseModalities for image generation when using the experimental model
+    if (shouldRequestImageGeneration) {
+      request.generationConfig.responseModalities = ['TEXT', 'IMAGE'];
+    }
+    
     // Add Google search tool if search is enabled
     if (options.enableSearch) {
       console.log('Adding Google search tool to request');
@@ -818,7 +1050,7 @@ export class GoogleService implements LLMService {
     }
     
     // Log the complete URL for debugging
-    const apiUrl = `${this.baseUrl}/models/${model.id}:${options.stream ? 'streamGenerateContent' : 'generateContent'}?key=${this.apiKey}`;
+    const apiUrl = `${this.baseUrl}/models/${effectiveModelId}:${options.stream ? 'streamGenerateContent' : 'generateContent'}?key=${this.apiKey}`;
     console.log('API URL (without key):', apiUrl.replace(this.apiKey, 'API_KEY_HIDDEN'));
     
     const response = await fetch(apiUrl, {
@@ -891,7 +1123,7 @@ export class GoogleService implements LLMService {
       }
       
       // Check for function calls in the response (for search functionality)
-      if (data.candidates[0]?.content?.functionCalls) {
+      if (data.candidates?.[0]?.content?.functionCalls) {
         const functionCalls = data.candidates[0].content.functionCalls;
         for (const functionCall of functionCalls) {
           if (functionCall.name === "google_search") {
