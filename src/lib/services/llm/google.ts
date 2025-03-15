@@ -14,6 +14,10 @@ interface GoogleMessage {
       mimeType: string;
       data: string;
     };
+    functionCall?: {
+      name: string;
+      args: Record<string, any>;
+    };
   }[];
 }
 
@@ -62,6 +66,10 @@ interface GoogleCompletionResponse {
           mimeType: string;
           data: string;
         };
+        functionCall?: {
+          name: string;
+          args: Record<string, any>;
+        };
       }[];
       functionCalls?: {
         name: string;
@@ -80,6 +88,10 @@ interface GoogleStreamChunk {
         inlineData?: {
           mimeType: string;
           data: string;
+        };
+        functionCall?: {
+          name: string;
+          args: Record<string, any>;
         };
       }[];
       functionCalls?: {
@@ -461,6 +473,7 @@ export async function streamCompletion(
       // Decode the chunk and add to buffer
       const chunk = decoder.decode(value, { stream: true });
       console.log('Received chunk length:', chunk.length);
+      console.log('Raw chunk data:', chunk); // Log the raw chunk to help debug the response format
       buffer += chunk;
       
       // The Gemini API returns an array of JSON objects
@@ -532,9 +545,7 @@ export async function streamCompletion(
               for (const part of parts) {
                 if (part.text) {
                   newText += part.text;
-                } 
-                // replaced 'else if' so responses with image and text show both
-                if (part.inlineData) {
+                } else if (part.inlineData) {
                   // Log to help debug image generation issues
                   console.log(`Received inlineData with mimeType: ${part.inlineData.mimeType}, data length: ${part.inlineData.data?.length || 0}`);
                   
@@ -549,15 +560,12 @@ export async function streamCompletion(
                     newText += `\n\n**Note**: Attempted to generate an image, but received invalid data. This might be due to content restrictions or a technical issue.`;
                   }
                 }
-              }
-              
-              // Check for function calls in the response (for search functionality)
-              if (item.candidates?.[0]?.content?.functionCalls) {
-                const functionCalls = item.candidates[0].content.functionCalls;
-                for (const functionCall of functionCalls) {
-                  if (functionCall.name === "google_search") {
-                    const query = functionCall.args.query;
-                    console.log('Google search requested with query:', query);
+                // NEW: Check for functionCall within parts
+                if (part.functionCall) {
+                  console.log('Found functionCall in parts array (JSON object):', part.functionCall);
+                  if (part.functionCall.name === "google_search") {
+                    const query = part.functionCall.args.query;
+                    console.log('Google search requested with query (from parts):', query);
                     newText += `\n\n[🔍 Searching for: ${query}]\n\n`;
                     
                     // Notify the user that a search is being performed
@@ -566,6 +574,54 @@ export async function streamCompletion(
                     // Perform actual Google search
                     try {
                       const searchResults = await performGoogleSearch(query);
+                      console.log('Search results received:', searchResults.substring(0, 100) + '...');
+                      
+                      // Send search results back to the model for processing
+                      const searchResponseText = await handleSearchResults(
+                        effectiveModelId, 
+                        [...googleMessages, {
+                          role: 'model' as const,
+                          parts: [{ text: newText }]
+                        }], 
+                        searchResults,
+                        onChunk,
+                        onError,
+                        responseText,
+                        mediaItems
+                      );
+                      
+                      // Update the full response text with search-informed content
+                      if (searchResponseText) {
+                        responseText = searchResponseText;
+                      }
+                      
+                      // Skip normal processing since we've handled it via search
+                      continue;
+                    } catch (searchError) {
+                      console.error('Error performing search:', searchError);
+                      newText += `\n\nError performing search: ${searchError.message}\n\n`;
+                    }
+                  }
+                }
+              }
+              
+              // Check for function calls in the response (for search functionality in old format)
+              if (item.candidates?.[0]?.content?.functionCalls) {
+                console.log('Found functionCalls array in content:', item.candidates[0].content.functionCalls);
+                const functionCalls = item.candidates[0].content.functionCalls;
+                for (const functionCall of functionCalls) {
+                  if (functionCall.name === "google_search") {
+                    const query = functionCall.args.query;
+                    console.log('Google search requested with query (from functionCalls):', query);
+                    newText += `\n\n[🔍 Searching for: ${query}]\n\n`;
+                    
+                    // Notify the user that a search is being performed
+                    onChunk(responseText + newText, mediaItems);
+                    
+                    // Perform actual Google search
+                    try {
+                      const searchResults = await performGoogleSearch(query);
+                      console.log('Search results received:', searchResults.substring(0, 100) + '...');
                       
                       // Send search results back to the model for processing
                       const searchResponseText = await handleSearchResults(
@@ -643,15 +699,12 @@ export async function streamCompletion(
                   newText += `\n\n**Note**: Attempted to generate an image, but received invalid data. This might be due to content restrictions or a technical issue.`;
                 }
               }
-            }
-            
-            // Check for function calls in the response (for search functionality)
-            if (jsonData.candidates?.[0]?.content?.functionCalls) {
-              const functionCalls = jsonData.candidates[0].content.functionCalls;
-              for (const functionCall of functionCalls) {
-                if (functionCall.name === "google_search") {
-                  const query = functionCall.args.query;
-                  console.log('Google search requested with query:', query);
+              // NEW: Check for functionCall within parts
+              if (part.functionCall) {
+                console.log('Found functionCall in parts array (JSON object):', part.functionCall);
+                if (part.functionCall.name === "google_search") {
+                  const query = part.functionCall.args.query;
+                  console.log('Google search requested with query (from parts):', query);
                   newText += `\n\n[🔍 Searching for: ${query}]\n\n`;
                   
                   // Notify the user that a search is being performed
@@ -660,6 +713,54 @@ export async function streamCompletion(
                   // Perform actual Google search
                   try {
                     const searchResults = await performGoogleSearch(query);
+                    console.log('Search results received:', searchResults.substring(0, 100) + '...');
+                    
+                    // Send search results back to the model for processing
+                    const searchResponseText = await handleSearchResults(
+                      effectiveModelId, 
+                      [...googleMessages, {
+                        role: 'model' as const,
+                        parts: [{ text: newText }]
+                      }], 
+                      searchResults,
+                      onChunk,
+                      onError,
+                      responseText,
+                      mediaItems
+                    );
+                    
+                    // Update the full response text with search-informed content
+                    if (searchResponseText) {
+                      responseText = searchResponseText;
+                    }
+                    
+                    // Skip normal processing since we've handled it via search
+                    continue;
+                  } catch (searchError) {
+                    console.error('Error performing search:', searchError);
+                    newText += `\n\nError performing search: ${searchError.message}\n\n`;
+                  }
+                }
+              }
+            }
+            
+            // Check for function calls in the response (for search functionality in old format)
+            if (jsonData.candidates?.[0]?.content?.functionCalls) {
+              console.log('Found functionCalls array in content:', jsonData.candidates[0].content.functionCalls);
+              const functionCalls = jsonData.candidates[0].content.functionCalls;
+              for (const functionCall of functionCalls) {
+                if (functionCall.name === "google_search") {
+                  const query = functionCall.args.query;
+                  console.log('Google search requested with query (from functionCalls):', query);
+                  newText += `\n\n[🔍 Searching for: ${query}]\n\n`;
+                  
+                  // Notify the user that a search is being performed
+                  onChunk(responseText + newText, mediaItems);
+                  
+                  // Perform actual Google search
+                  try {
+                    const searchResults = await performGoogleSearch(query);
+                    console.log('Search results received:', searchResults.substring(0, 100) + '...');
                     
                     // Send search results back to the model for processing
                     const searchResponseText = await handleSearchResults(
@@ -930,6 +1031,8 @@ export async function completion(
         console.log(`Part ${index}: text content (length ${part.text.length})`);
       } else if (part.inlineData) {
         console.log(`Part ${index}: inlineData with mimeType ${part.inlineData.mimeType}, data length: ${part.inlineData.data?.length || 0}`);
+      } else if (part.functionCall) {
+        console.log(`Part ${index}: functionCall with name ${part.functionCall.name}`);
       } else {
         console.log(`Part ${index}: unknown content type`, part);
       }
@@ -937,6 +1040,7 @@ export async function completion(
     
     let hasImageRequest = shouldRequestImageGeneration;
     let hasImageResponse = false;
+    let googleSearchQuery = null;
     
     for (const part of parts) {
       if (part.text) {
@@ -947,6 +1051,36 @@ export async function completion(
         if (mediaItem) {
           mediaItems.push(mediaItem);
           hasImageResponse = true;
+        }
+      } else if (part.functionCall && part.functionCall.name === "google_search") {
+        // Handle function call in parts
+        googleSearchQuery = part.functionCall.args.query;
+        console.log('Google search requested with query (non-streaming):', googleSearchQuery);
+        responseText += `\n\n[🔍 Searching for: ${googleSearchQuery}]\n\n`;
+        
+        // For non-streaming, we'll perform the search and get results right away
+        try {
+          const searchResults = await performGoogleSearch(googleSearchQuery);
+          console.log('Search results received (non-streaming):', searchResults.substring(0, 100) + '...');
+          
+          // Append search results to response
+          responseText += `Search results:\n\n${searchResults}\n\n`;
+          
+          // Now make a follow-up request to get the model to incorporate these results
+          const followUpResponse = await handleSearchResultsNonStreaming(
+            effectiveModelId,
+            googleMessages,
+            searchResults,
+            responseText
+          );
+          
+          if (followUpResponse) {
+            // Replace the search indicator with the search-informed response
+            responseText = followUpResponse;
+          }
+        } catch (searchError) {
+          console.error('Error performing search (non-streaming):', searchError);
+          responseText += `\n\nError performing search: ${searchError.message}\n\n`;
         }
       }
     }
@@ -961,6 +1095,93 @@ export async function completion(
   } catch (error) {
     console.error('Google completion error:', error);
     throw error;
+  }
+}
+
+// Add a new function for non-streaming search handling
+async function handleSearchResultsNonStreaming(
+  modelId: string,
+  messages: GoogleMessage[],
+  searchResults: string,
+  currentText: string
+): Promise<string> {
+  try {
+    // Add the search results as a "user" message
+    const messagesWithSearchResults = [
+      ...messages,
+      {
+        role: 'user' as const,
+        parts: [{ 
+          text: `Search results:\n\n${searchResults}\n\nPlease incorporate this information into your response.` 
+        }]
+      }
+    ];
+    
+    const apiKey = getApiKey();
+    
+    // Create a follow-up request with search results
+    const requestBody: GoogleCompletionRequest = {
+      contents: messagesWithSearchResults,
+      generationConfig: {
+        temperature: 0.7,
+        maxOutputTokens: 2048,
+      },
+      safetySettings: [
+        {
+          category: 'HARM_CATEGORY_HARASSMENT',
+          threshold: 'BLOCK_MEDIUM_AND_ABOVE'
+        },
+        {
+          category: 'HARM_CATEGORY_HATE_SPEECH',
+          threshold: 'BLOCK_MEDIUM_AND_ABOVE'
+        },
+        {
+          category: 'HARM_CATEGORY_SEXUALLY_EXPLICIT',
+          threshold: 'BLOCK_MEDIUM_AND_ABOVE'
+        },
+        {
+          category: 'HARM_CATEGORY_DANGEROUS_CONTENT',
+          threshold: 'BLOCK_MEDIUM_AND_ABOVE'
+        }
+      ]
+    };
+    
+    // Make request to get search-informed response
+    const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${modelId}:generateContent?key=${apiKey}`;
+    const response = await fetch(apiUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(requestBody),
+    });
+    
+    if (!response.ok) {
+      throw new Error(`Failed to get search-informed response: ${response.statusText}`);
+    }
+    
+    const data: GoogleCompletionResponse = await response.json();
+    console.log('Search-informed response:', data);
+    
+    // Get the search-informed response text
+    let searchInformedText = '';
+    for (const part of data.candidates[0]?.content?.parts || []) {
+      if (part.text) {
+        searchInformedText += part.text;
+      }
+    }
+    
+    // Replace the search placeholder with the actual search-informed text
+    const query = searchResults.split('"')[1] || "unknown query";
+    const updatedText = currentText.replace(
+      `\n\n[🔍 Searching for: ${query}]\n\n`,
+      `\n\n[🔍 Search results incorporated]\n\n`
+    ) + searchInformedText;
+    
+    return updatedText;
+  } catch (error) {
+    console.error('Error handling search results (non-streaming):', error);
+    return currentText + `\n\nError incorporating search results: ${error.message}\n\n`;
   }
 }
 
@@ -1101,6 +1322,8 @@ export class GoogleService implements LLMService {
           console.log(`Part ${index}: text content (length ${part.text.length})`);
         } else if (part.inlineData) {
           console.log(`Part ${index}: inlineData with mimeType ${part.inlineData.mimeType}, data length: ${part.inlineData.data?.length || 0}`);
+        } else if (part.functionCall) {
+          console.log(`Part ${index}: functionCall with name ${part.functionCall.name}`);
         } else {
           console.log(`Part ${index}: unknown content type`, part);
         }
@@ -1108,6 +1331,7 @@ export class GoogleService implements LLMService {
       
       let hasImageRequest = shouldRequestImageGeneration;
       let hasImageResponse = false;
+      let googleSearchQuery = null;
       
       for (const part of parts) {
         if (part.text) {
@@ -1119,17 +1343,35 @@ export class GoogleService implements LLMService {
             mediaItems.push(mediaItem);
             hasImageResponse = true;
           }
-        }
-      }
-      
-      // Check for function calls in the response (for search functionality)
-      if (data.candidates?.[0]?.content?.functionCalls) {
-        const functionCalls = data.candidates[0].content.functionCalls;
-        for (const functionCall of functionCalls) {
-          if (functionCall.name === "google_search") {
-            const query = functionCall.args.query;
-            console.log('Google search requested with query:', query);
-            responseText += `\n\n[🔍 Searching for: ${query}]\n\n`;
+        } else if (part.functionCall && part.functionCall.name === "google_search") {
+          // Handle function call in parts
+          googleSearchQuery = part.functionCall.args.query;
+          console.log('Google search requested with query (non-streaming):', googleSearchQuery);
+          responseText += `\n\n[🔍 Searching for: ${googleSearchQuery}]\n\n`;
+          
+          // For non-streaming, we'll perform the search and get results right away
+          try {
+            const searchResults = await performGoogleSearch(googleSearchQuery);
+            console.log('Search results received (non-streaming):', searchResults.substring(0, 100) + '...');
+            
+            // Append search results to response
+            responseText += `Search results:\n\n${searchResults}\n\n`;
+            
+            // Now make a follow-up request to get the model to incorporate these results
+            const followUpResponse = await handleSearchResultsNonStreaming(
+              effectiveModelId,
+              googleMessages,
+              searchResults,
+              responseText
+            );
+            
+            if (followUpResponse) {
+              // Replace the search indicator with the search-informed response
+              responseText = followUpResponse;
+            }
+          } catch (searchError) {
+            console.error('Error performing search (non-streaming):', searchError);
+            responseText += `\n\nError performing search: ${searchError.message}\n\n`;
           }
         }
       }
