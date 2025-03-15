@@ -17,6 +17,26 @@ interface GoogleMessage {
   }[];
 }
 
+// Define the Google search tool
+const googleSearchTool = {
+  function_declarations: [
+    {
+      name: "google_search",
+      description: "Performs a google search and returns the result. Use this whenever you need to search for current information or facts that you don't know or might be outdated.",
+      parameters: {
+        type: "OBJECT",
+        properties: {
+          query: {
+            type: "STRING",
+            description: "The search query."
+          }
+        },
+        required: ["query"]
+      }
+    }
+  ]
+};
+
 interface GoogleCompletionRequest {
   contents: GoogleMessage[];
   generationConfig?: {
@@ -57,6 +77,10 @@ interface GoogleStreamChunk {
           mimeType: string;
           data: string;
         };
+      }[];
+      functionCalls?: {
+        name: string;
+        args: Record<string, any>;
       }[];
     };
     finishReason?: string;
@@ -256,7 +280,8 @@ export async function streamCompletion(
   onChunk: (text: string, media?: MediaItem[]) => void,
   onComplete: () => void,
   onError: (error: Error) => void,
-  onThinking?: (thinking: string) => void
+  onThinking?: (thinking: string) => void,
+  enableSearch: boolean = false
 ) {
   try {
     const apiKey = getApiKey();
@@ -270,13 +295,14 @@ export async function streamCompletion(
     
     console.log('Sending request to Google Gemini API with model:', modelId);
     console.log('Messages after conversion:', JSON.stringify(googleMessages, null, 2));
+    console.log('Web search enabled:', enableSearch);
     
     // Always request image generation
     const shouldRequestImageGeneration = true;
     console.log('Always requesting image generation');
     
     // Create the request body
-    const requestBody = {
+    const requestBody: GoogleCompletionRequest = {
       contents: googleMessages,
       generationConfig: {
         temperature: 0.7,
@@ -302,6 +328,12 @@ export async function streamCompletion(
         }
       ]
     };
+    
+    // Add Google search tool if search is enabled
+    if (enableSearch) {
+      console.log('Adding Google search tool to request');
+      requestBody.tools = [googleSearchTool];
+    }
     
     // Log detailed request information for debugging
     console.log('Image generation requested:', shouldRequestImageGeneration);
@@ -438,7 +470,7 @@ export async function streamCompletion(
                 if (part.text) {
                   newText += part.text;
                 } 
-                // replaced 'else if'so responses with image and text show both
+                // replaced 'else if' so responses with image and text show both
                 if (part.inlineData) {
                   // Log to help debug image generation issues
                   console.log(`Received inlineData with mimeType: ${part.inlineData.mimeType}, data length: ${part.inlineData.data?.length || 0}`);
@@ -456,11 +488,23 @@ export async function streamCompletion(
                 }
               }
               
+              // Check for function calls in the response (for search functionality)
+              if (item.candidates?.[0]?.content?.functionCalls) {
+                const functionCalls = item.candidates[0].content.functionCalls;
+                for (const functionCall of functionCalls) {
+                  if (functionCall.name === "google_search") {
+                    const query = functionCall.args.query;
+                    console.log('Google search requested with query:', query);
+                    newText += `\n\n[🔍 Searching for: ${query}]\n\n`;
+                  }
+                }
+              }
+              
               if (newText) {
                 responseText += newText;
               }
               
-              // Notify the caller with both text and any media items
+              // Notify the caller with new text
               onChunk(responseText, mediaItems);
             }
             
@@ -505,11 +549,23 @@ export async function streamCompletion(
               }
             }
             
+            // Check for function calls in the response (for search functionality)
+            if (jsonData.candidates?.[0]?.content?.functionCalls) {
+              const functionCalls = jsonData.candidates[0].content.functionCalls;
+              for (const functionCall of functionCalls) {
+                if (functionCall.name === "google_search") {
+                  const query = functionCall.args.query;
+                  console.log('Google search requested with query:', query);
+                  newText += `\n\n[🔍 Searching for: ${query}]\n\n`;
+                }
+              }
+            }
+            
             if (newText) {
               responseText += newText;
             }
             
-            // Notify the caller with both text and any media items
+            // Notify the caller with new text
             onChunk(responseText, mediaItems);
           }
           
@@ -532,7 +588,11 @@ export async function streamCompletion(
 }
 
 // Non-streaming completion API with multimodal support
-export async function completion(modelId: string, messages: Message[]): Promise<{ text: string, media: MediaItem[] }> {
+export async function completion(
+  modelId: string, 
+  messages: Message[],
+  enableSearch: boolean = false
+): Promise<{ text: string, media: MediaItem[] }> {
   try {
     const apiKey = getApiKey();
     const googleMessages = convertToGoogleMessages(messages);
@@ -545,13 +605,14 @@ export async function completion(modelId: string, messages: Message[]): Promise<
     
     console.log('Sending non-streaming request to Google Gemini API with model:', modelId);
     console.log('Messages after conversion:', JSON.stringify(googleMessages, null, 2));
+    console.log('Web search enabled:', enableSearch);
     
     // Always request image generation
     const shouldRequestImageGeneration = true;
     console.log('Always requesting image generation');
     
     // Create the request body
-    const requestBody = {
+    const requestBody: GoogleCompletionRequest = {
       contents: googleMessages,
       generationConfig: {
         temperature: 0.7,
@@ -577,6 +638,12 @@ export async function completion(modelId: string, messages: Message[]): Promise<
         }
       ]
     };
+    
+    // Add Google search tool if search is enabled
+    if (enableSearch) {
+      console.log('Adding Google search tool to request');
+      requestBody.tools = [googleSearchTool];
+    }
     
     // Log detailed request information for debugging
     console.log('Image generation requested:', shouldRequestImageGeneration);
@@ -692,6 +759,7 @@ export class GoogleService implements LLMService {
       temperature?: number;
       maxTokens?: number;
       stream?: boolean;
+      enableSearch?: boolean;
     } = {}
   ): Promise<ReadableStream<Uint8Array> | { text: string, media: MediaItem[] }> {
     if (!this.apiKey) {
@@ -709,6 +777,7 @@ export class GoogleService implements LLMService {
     // Always request image generation
     const shouldRequestImageGeneration = true;
     console.log('Always requesting image generation');
+    console.log('Web search enabled:', options.enableSearch);
     
     const request: GoogleCompletionRequest = {
       contents: googleMessages,
@@ -736,6 +805,12 @@ export class GoogleService implements LLMService {
         }
       ],
     };
+    
+    // Add Google search tool if search is enabled
+    if (options.enableSearch) {
+      console.log('Adding Google search tool to request');
+      request.tools = [googleSearchTool];
+    }
     
     // Log the complete URL for debugging
     const apiUrl = `${this.baseUrl}/models/${model.id}:${options.stream ? 'streamGenerateContent' : 'generateContent'}?key=${this.apiKey}`;
@@ -773,49 +848,8 @@ export class GoogleService implements LLMService {
     if (options.stream) {
       return response.body as ReadableStream<Uint8Array>;
     } else {
-      const data: GoogleCompletionResponse = await response.json();
-      let responseText = '';
-      const mediaItems: MediaItem[] = [];
-      
-      // Log the actual response for debugging
-      console.log('Raw response from Google API:', JSON.stringify(data, null, 2));
-      
-      // Process parts which could be text or images
-      const parts = data.candidates[0]?.content?.parts || [];
-      console.log('Found parts in response:', parts.length);
-      parts.forEach((part, index) => {
-        if (part.text) {
-          console.log(`Part ${index}: text content (length ${part.text.length})`);
-        } else if (part.inlineData) {
-          console.log(`Part ${index}: inlineData with mimeType ${part.inlineData.mimeType}, data length: ${part.inlineData.data?.length || 0}`);
-        } else {
-          console.log(`Part ${index}: unknown content type`, part);
-        }
-      });
-      
-      let hasImageRequest = shouldRequestImageGeneration;
-      let hasImageResponse = false;
-      
-      for (const part of parts) {
-        if (part.text) {
-          responseText += part.text;
-        } else if (part.inlineData) {
-          // Handle image data
-          const mediaItem = createMediaItemFromInlineData(part.inlineData);
-          if (mediaItem) {
-            mediaItems.push(mediaItem);
-            hasImageResponse = true;
-          }
-        }
-      }
-      
-      // If user requested an image but no valid image was returned, add an error message
-      if (hasImageRequest && !hasImageResponse) {
-        const errorMsg = "Google's API did not return a valid image. This could be due to content policy restrictions, rate limiting, or an error in the image generation process.";
-        responseText += `\n\n**Error generating image**: ${errorMsg}\n\nFull API response: ${JSON.stringify(data, null, 2)}`;
-      }
-      
-      return { text: responseText, media: mediaItems };
+      // For non-streaming requests, use our completion function
+      return await completion(model.id, messages, options.enableSearch);
     }
   }
   

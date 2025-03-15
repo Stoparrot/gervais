@@ -233,6 +233,9 @@
       }
       else if (provider === 'google') {
         // Use Google API
+        const enableSearch = activeTools.search || false;
+        console.log('Web search enabled for Google model:', enableSearch);
+        
         await googleService.streamCompletion(
           modelId,
           messages,
@@ -272,7 +275,9 @@
             chatStore.updateMessage($activeChat.id, assistantMessageId, {
               thinking,
             });
-          }
+          },
+          // Pass the search flag from active tools
+          enableSearch
         );
       }
       else if (provider === 'ollama') {
