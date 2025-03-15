@@ -843,6 +843,18 @@ async function handleSearchResults(
   currentMediaItems: MediaItem[] = []
 ): Promise<string> {
   try {
+    // Extract query from search results
+    const query = searchResults.split('"')[1] || "unknown query";
+    
+    // First, show the search results to the user
+    const textWithSearchResults = currentText.replace(
+      `\n\n[🔍 Searching for: ${query}]\n\n`,
+      `\n\n[🔍 Search results for "${query}"]\n\n${searchResults}\n\nAnalyzing search results...\n\n`
+    );
+    
+    // Update UI with search results
+    onChunk(textWithSearchResults, currentMediaItems);
+    
     // Add the search results as a "user" message (system messages aren't supported)
     const messagesWithSearchResults = [
       ...messages,
@@ -907,19 +919,16 @@ async function handleSearchResults(
       }
     }
     
-    // Extract query from search results
-    const query = searchResults.split('"')[1] || "unknown query";
-    
-    // Replace the search placeholder with the search indicator and the search-informed text
-    const updatedText = currentText.replace(
-      `\n\n[🔍 Searching for: ${query}]\n\n`,
-      `\n\n[🔍 Search results for "${query}"]\n\n${searchInformedText}\n\n`
+    // Replace the "Analyzing search results..." text with the model's response
+    const finalText = textWithSearchResults.replace(
+      `Analyzing search results...\n\n`,
+      `\n\n**Response based on search results:**\n\n${searchInformedText}\n\n`
     );
     
-    // Update the UI with the search-informed response
-    onChunk(updatedText, currentMediaItems);
+    // Update the UI with the final response
+    onChunk(finalText, currentMediaItems);
     
-    return updatedText;
+    return finalText;
   } catch (error) {
     console.error('Error handling search results:', error);
     onError(error instanceof Error ? error : new Error(String(error)));
@@ -1124,6 +1133,15 @@ async function handleSearchResultsNonStreaming(
   currentText: string
 ): Promise<string> {
   try {
+    // Extract query from search results
+    const query = searchResults.split('"')[1] || "unknown query";
+    
+    // First, include the search results 
+    const textWithSearchResults = currentText.replace(
+      `\n\n[🔍 Searching for: ${query}]\n\n`,
+      `\n\n[🔍 Search results for "${query}"]\n\n${searchResults}\n\n**Response based on search results:**\n\n`
+    );
+    
     // Add the search results as a "user" message
     const messagesWithSearchResults = [
       ...messages,
@@ -1189,16 +1207,10 @@ async function handleSearchResultsNonStreaming(
       }
     }
     
-    // Extract query from search results
-    const query = searchResults.split('"')[1] || "unknown query";
+    // Append the model's response
+    const finalText = textWithSearchResults + searchInformedText + "\n\n";
     
-    // Replace the search placeholder with the search indicator and the search-informed text
-    const updatedText = currentText.replace(
-      `\n\n[🔍 Searching for: ${query}]\n\n`,
-      `\n\n[🔍 Search results for "${query}"]\n\n${searchInformedText}\n\n`
-    );
-    
-    return updatedText;
+    return finalText;
   } catch (error) {
     console.error('Error handling search results (non-streaming):', error);
     return currentText + `\n\nError incorporating search results: ${error.message}\n\n`;
