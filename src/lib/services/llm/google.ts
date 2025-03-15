@@ -845,15 +845,49 @@ async function handleSearchResults(
   try {
     // Extract query from search results
     const query = searchResults.split('"')[1] || "unknown query";
+    console.log('Handling search results for query:', query);
+    console.log('Search results (first 100 chars):', searchResults.substring(0, 100));
+    console.log('Current text before update (last 100 chars):', currentText.substring(Math.max(0, currentText.length - 100)));
     
-    // First, show the search results to the user
-    const textWithSearchResults = currentText.replace(
-      `\n\n[🔍 Searching for: ${query}]\n\n`,
-      `\n\n[🔍 Search results for "${query}"]\n\n${searchResults}\n\nAnalyzing search results...\n\n`
-    );
+    // The text to look for in the replacement
+    const searchingText = `\n\n[🔍 Searching for: ${query}]\n\n`;
     
-    // Update UI with search results
-    onChunk(textWithSearchResults, currentMediaItems);
+    // For debugging
+    if (!currentText.includes(searchingText)) {
+      console.log('Warning: Could not find the search indicator text in the current text.');
+      console.log('Expected to find:', searchingText);
+      console.log('Current text contains search indicator:', currentText.includes('[🔍 Searching for:'));
+    }
+    
+    // Create a new response text with the search results
+    let updatedText;
+    if (currentText.includes(searchingText)) {
+      updatedText = currentText.replace(
+        searchingText,
+        `\n\n[🔍 Search results for "${query}"]\n\n${searchResults}\n\n[Analyzing search results...]\n\n`
+      );
+    } else {
+      // Fallback if exact pattern not found - look for any search indicator 
+      const regex = new RegExp(`\\n\\n\\[🔍 Searching for: [^\\]]+\\]\\n\\n`);
+      const matches = currentText.match(regex);
+      
+      if (matches && matches.length > 0) {
+        console.log('Found alternative search indicator:', matches[0]);
+        updatedText = currentText.replace(
+          matches[0],
+          `\n\n[🔍 Search results for "${query}"]\n\n${searchResults}\n\n[Analyzing search results...]\n\n`
+        );
+      } else {
+        // Last resort - just append the search results
+        console.log('No search indicator found, appending search results at the end');
+        updatedText = currentText + `\n\n[🔍 Search results for "${query}"]\n\n${searchResults}\n\n[Analyzing search results...]\n\n`;
+      }
+    }
+    
+    console.log('Updated text with search results (last 100 chars):', updatedText.substring(Math.max(0, updatedText.length - 100)));
+    
+    // Immediately update UI with search results
+    onChunk(updatedText, currentMediaItems);
     
     // Add the search results as a "user" message (system messages aren't supported)
     const messagesWithSearchResults = [
@@ -919,11 +953,15 @@ async function handleSearchResults(
       }
     }
     
+    console.log('Got model response (first 100 chars):', searchInformedText.substring(0, 100));
+    
     // Replace the "Analyzing search results..." text with the model's response
-    const finalText = textWithSearchResults.replace(
-      `Analyzing search results...\n\n`,
-      `\n\n**Response based on search results:**\n\n${searchInformedText}\n\n`
+    const finalText = updatedText.replace(
+      `[Analyzing search results...]\n\n`,
+      `**Response based on search results:**\n\n${searchInformedText}\n\n`
     );
+    
+    console.log('Final text with model response (last 100 chars):', finalText.substring(Math.max(0, finalText.length - 100)));
     
     // Update the UI with the final response
     onChunk(finalText, currentMediaItems);
@@ -1135,12 +1173,42 @@ async function handleSearchResultsNonStreaming(
   try {
     // Extract query from search results
     const query = searchResults.split('"')[1] || "unknown query";
+    console.log('Handling non-streaming search results for query:', query);
     
-    // First, include the search results 
-    const textWithSearchResults = currentText.replace(
-      `\n\n[🔍 Searching for: ${query}]\n\n`,
-      `\n\n[🔍 Search results for "${query}"]\n\n${searchResults}\n\n**Response based on search results:**\n\n`
-    );
+    // The text to look for in the replacement
+    const searchingText = `\n\n[🔍 Searching for: ${query}]\n\n`;
+    
+    // For debugging
+    if (!currentText.includes(searchingText)) {
+      console.log('Warning: Could not find the search indicator text in the current text (non-streaming).');
+      console.log('Expected to find:', searchingText);
+      console.log('Current text contains search indicator:', currentText.includes('[🔍 Searching for:'));
+    }
+    
+    // Create a new response text with the search results
+    let updatedText;
+    if (currentText.includes(searchingText)) {
+      updatedText = currentText.replace(
+        searchingText,
+        `\n\n[🔍 Search results for "${query}"]\n\n${searchResults}\n\n**Response based on search results:**\n\n`
+      );
+    } else {
+      // Fallback if exact pattern not found - look for any search indicator 
+      const regex = new RegExp(`\\n\\n\\[🔍 Searching for: [^\\]]+\\]\\n\\n`);
+      const matches = currentText.match(regex);
+      
+      if (matches && matches.length > 0) {
+        console.log('Found alternative search indicator (non-streaming):', matches[0]);
+        updatedText = currentText.replace(
+          matches[0],
+          `\n\n[🔍 Search results for "${query}"]\n\n${searchResults}\n\n**Response based on search results:**\n\n`
+        );
+      } else {
+        // Last resort - just append the search results
+        console.log('No search indicator found, appending search results at the end (non-streaming)');
+        updatedText = currentText + `\n\n[🔍 Search results for "${query}"]\n\n${searchResults}\n\n**Response based on search results:**\n\n`;
+      }
+    }
     
     // Add the search results as a "user" message
     const messagesWithSearchResults = [
@@ -1208,7 +1276,7 @@ async function handleSearchResultsNonStreaming(
     }
     
     // Append the model's response
-    const finalText = textWithSearchResults + searchInformedText + "\n\n";
+    const finalText = updatedText + searchInformedText + "\n\n";
     
     return finalText;
   } catch (error) {
