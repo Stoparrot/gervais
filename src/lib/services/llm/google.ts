@@ -63,6 +63,10 @@ interface GoogleCompletionResponse {
           data: string;
         };
       }[];
+      functionCalls?: {
+        name: string;
+        args: Record<string, any>;
+      }[];
     };
     finishReason: string;
   }[];
@@ -591,7 +595,8 @@ export async function streamCompletion(
 export async function completion(
   modelId: string, 
   messages: Message[],
-  enableSearch: boolean = false
+  enableSearch: boolean = false,
+  _fromSendMessage: boolean = false // Internal flag to avoid recursion
 ): Promise<{ text: string, media: MediaItem[] }> {
   try {
     const apiKey = getApiKey();
@@ -848,8 +853,62 @@ export class GoogleService implements LLMService {
     if (options.stream) {
       return response.body as ReadableStream<Uint8Array>;
     } else {
-      // For non-streaming requests, use our completion function
-      return await completion(model.id, messages, options.enableSearch);
+      // For non-streaming requests, handle the full response here
+      const data: GoogleCompletionResponse = await response.json();
+      let responseText = '';
+      const mediaItems: MediaItem[] = [];
+      
+      // Log the actual response for debugging
+      console.log('Raw response from Google API:', JSON.stringify(data, null, 2));
+      
+      // Process parts which could be text or images
+      const parts = data.candidates[0]?.content?.parts || [];
+      console.log('Found parts in response:', parts.length);
+      parts.forEach((part, index) => {
+        if (part.text) {
+          console.log(`Part ${index}: text content (length ${part.text.length})`);
+        } else if (part.inlineData) {
+          console.log(`Part ${index}: inlineData with mimeType ${part.inlineData.mimeType}, data length: ${part.inlineData.data?.length || 0}`);
+        } else {
+          console.log(`Part ${index}: unknown content type`, part);
+        }
+      });
+      
+      let hasImageRequest = shouldRequestImageGeneration;
+      let hasImageResponse = false;
+      
+      for (const part of parts) {
+        if (part.text) {
+          responseText += part.text;
+        } else if (part.inlineData) {
+          // Handle image data
+          const mediaItem = createMediaItemFromInlineData(part.inlineData);
+          if (mediaItem) {
+            mediaItems.push(mediaItem);
+            hasImageResponse = true;
+          }
+        }
+      }
+      
+      // Check for function calls in the response (for search functionality)
+      if (data.candidates[0]?.content?.functionCalls) {
+        const functionCalls = data.candidates[0].content.functionCalls;
+        for (const functionCall of functionCalls) {
+          if (functionCall.name === "google_search") {
+            const query = functionCall.args.query;
+            console.log('Google search requested with query:', query);
+            responseText += `\n\n[🔍 Searching for: ${query}]\n\n`;
+          }
+        }
+      }
+      
+      // If user requested an image but no valid image was returned, add an error message
+      if (hasImageRequest && !hasImageResponse) {
+        const errorMsg = "Google's API did not return a valid image. This could be due to content policy restrictions, rate limiting, or an error in the image generation process.";
+        responseText += `\n\n**Error generating image**: ${errorMsg}`;
+      }
+      
+      return { text: responseText, media: mediaItems };
     }
   }
   
