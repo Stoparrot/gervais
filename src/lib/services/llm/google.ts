@@ -135,119 +135,53 @@ export const googleModels = [
 
 // Hard-coded Google Search API key
 const GOOGLE_SEARCH_API_KEY = 'AIzaSyDu7iMRbtRAycUVnpim9eXKq8PZIp-uHlU';
-// Update to a more standard search engine ID format
-const GOOGLE_SEARCH_ENGINE_ID = '009247643279386806570:oj2gsxhp4m4';
+// Use Google's public search engine ID
+const GOOGLE_SEARCH_ENGINE_ID = '017576662512468239146:omuauf_lfve';
 
 // Function to perform a Google search using the Custom Search API
 async function performGoogleSearch(query: string): Promise<string> {
   try {
     console.log('Performing Google search for:', query);
     
-    // Create a list of possible configurations to try
-    const searchConfigs = [
-      // First try with new search engine ID and safe search
-      {
-        url: `https://www.googleapis.com/customsearch/v1?key=${GOOGLE_SEARCH_API_KEY}&cx=${GOOGLE_SEARCH_ENGINE_ID}&q=${encodeURIComponent(query)}&safe=active`,
-        description: 'Primary search configuration with safe search'
-      },
-      // Try with different endpoint
-      {
-        url: `https://customsearch.googleapis.com/customsearch/v1?key=${GOOGLE_SEARCH_API_KEY}&cx=${GOOGLE_SEARCH_ENGINE_ID}&q=${encodeURIComponent(query)}`,
-        description: 'Alternative endpoint'
-      },
-      // Try with a public search engine ID as last resort
-      {
-        url: `https://www.googleapis.com/customsearch/v1?key=${GOOGLE_SEARCH_API_KEY}&cx=017576662512468239146:omuauf_lfve&q=${encodeURIComponent(query)}`,
-        description: 'Fallback to public search engine ID'
-      }
-    ];
+    // Use a single endpoint with Google's public search engine ID
+    const apiUrl = `https://www.googleapis.com/customsearch/v1?key=${GOOGLE_SEARCH_API_KEY}&cx=${GOOGLE_SEARCH_ENGINE_ID}&q=${encodeURIComponent(query)}`;
+    console.log('Search API URL (without key):', apiUrl.replace(GOOGLE_SEARCH_API_KEY, 'API_KEY_HIDDEN'));
     
-    let lastError = null;
-    let data = null;
+    const response = await fetch(apiUrl);
+    const data = await response.json();
     
-    // Try each configuration until one works
-    for (const config of searchConfigs) {
-      try {
-        console.log(`Trying search configuration: ${config.description}`);
-        console.log('Search API URL (without key):', config.url.replace(GOOGLE_SEARCH_API_KEY, 'API_KEY_HIDDEN'));
-        
-        const response = await fetch(config.url);
-        const responseData = await response.json();
-        console.log('Search response status:', response.status);
-        
-        if (response.ok && responseData.items && responseData.items.length > 0) {
-          console.log('Search successful with configuration:', config.description);
-          data = responseData;
-          break;
-        } else {
-          console.warn('Search configuration failed:', config.description);
-          console.warn('Response:', responseData);
-          lastError = responseData.error || { message: 'No results returned' };
-        }
-      } catch (configError) {
-        console.error(`Error with search configuration "${config.description}":`, configError);
-        lastError = configError;
-      }
-    }
+    console.log('Search response status:', response.status);
     
-    // If all configurations failed
-    if (!data || !data.items || data.items.length === 0) {
-      console.error('All search configurations failed');
-      
-      // Create a mock response as a last resort
-      return await getFallbackSearchResults(query, lastError);
+    if (!response.ok) {
+      console.error('Google search API error:', data);
+      throw new Error(`Google Search API error: ${data.error?.message || response.statusText}`);
     }
     
     // Format successful search results
     let formattedResults = `Search results for "${query}":\n\n`;
     
-    data.items.slice(0, 5).forEach((item, index) => {
-      formattedResults += `${index + 1}. ${item.title}\n`;
-      formattedResults += `   ${item.link}\n`;
-      formattedResults += `   ${item.snippet || 'No description available'}\n\n`;
-    });
+    if (data.items && data.items.length > 0) {
+      data.items.slice(0, 5).forEach((item, index) => {
+        formattedResults += `${index + 1}. ${item.title}\n`;
+        formattedResults += `   ${item.link}\n`;
+        formattedResults += `   ${item.snippet || 'No description available'}\n\n`;
+      });
+    } else {
+      formattedResults += 'No results found for this query.\n\n';
+    }
     
     return formattedResults;
   } catch (error) {
     console.error('Error performing Google search:', error);
-    return await getFallbackSearchResults(query, error);
+    return handleSearchError(query, error);
   }
 }
 
-// Fallback function to get search results when API fails
-async function getFallbackSearchResults(query: string, error: any): Promise<string> {
-  console.log('Using fallback search results for:', query);
-  
-  // Try to get current information from another source as a last resort
-  try {
-    // This is a simple fallback to at least get some basic information
-    const fallbackUrl = `https://serpapi.com/search?q=${encodeURIComponent(query)}&api_key=demo`;
-    
-    console.log('Attempting fallback search with SerpAPI demo');
-    const response = await fetch(fallbackUrl);
-    
-    if (response.ok) {
-      const data = await response.json();
-      if (data && data.organic_results && data.organic_results.length > 0) {
-        let formattedResults = `Search results for "${query}" (fallback source):\n\n`;
-        
-        data.organic_results.slice(0, 3).forEach((item, index) => {
-          formattedResults += `${index + 1}. ${item.title || 'No title'}\n`;
-          formattedResults += `   ${item.link || 'No link'}\n`;
-          formattedResults += `   ${item.snippet || 'No description available'}\n\n`;
-        });
-        
-        return formattedResults;
-      }
-    }
-  } catch (fallbackError) {
-    console.error('Fallback search also failed:', fallbackError);
-  }
-  
-  // If all else fails, provide a helpful error message
+// Simple error handler for search failures
+function handleSearchError(query: string, error: any): string {
   return `Unable to perform search for "${query}": ${error?.message || 'Unknown error'}\n\n` +
     `This could be due to:\n` +
-    `1. API key or search engine ID configuration issues\n` +
+    `1. API key limitations or issues\n` +
     `2. Rate limiting or quota restrictions\n` +
     `3. Network connectivity problems\n\n` +
     `Please check the console logs for more detailed error information.`;
