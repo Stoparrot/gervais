@@ -135,23 +135,15 @@ export const googleModels = [
 
 // Hard-coded Google Search API key
 const GOOGLE_SEARCH_API_KEY = 'AIzaSyDu7iMRbtRAycUVnpim9eXKq8PZIp-uHlU';
-// Use Google's public search engine ID (Note: this is limited to CS curriculum content)
-const GOOGLE_SEARCH_ENGINE_ID = '017576662512468239146:omuauf_lfve';
+// Use the user's provided search engine ID
+const GOOGLE_SEARCH_ENGINE_ID = 'f7a30c9eb4cc04573';
 
 // Function to perform a Google search using the Custom Search API
 async function performGoogleSearch(query: string): Promise<string> {
   try {
     console.log('Performing Google search for:', query);
     
-    // First try to get results from our mock search for common queries
-    const mockResults = getMockSearchResults(query);
-    if (mockResults) {
-      console.log('Using mock search results for common query');
-      return mockResults;
-    }
-    
-    // If no mock results, try the real API
-    // Use a single endpoint with Google's public search engine ID
+    // Use the direct Google Custom Search API with the provided engine ID
     const apiUrl = `https://www.googleapis.com/customsearch/v1?key=${GOOGLE_SEARCH_API_KEY}&cx=${GOOGLE_SEARCH_ENGINE_ID}&q=${encodeURIComponent(query)}`;
     console.log('Search API URL (without key):', apiUrl.replace(GOOGLE_SEARCH_API_KEY, 'API_KEY_HIDDEN'));
     
@@ -165,7 +157,7 @@ async function performGoogleSearch(query: string): Promise<string> {
       throw new Error(`Google Search API error: ${data.error?.message || response.statusText}`);
     }
     
-    // Format successful search results
+    // Format search results
     let formattedResults = `Search results for "${query}":\n\n`;
     
     if (data.items && data.items.length > 0) {
@@ -175,194 +167,17 @@ async function performGoogleSearch(query: string): Promise<string> {
         formattedResults += `   ${item.snippet || 'No description available'}\n\n`;
       });
     } else {
-      // If no real results, generate a synthetic response
-      const syntheticResults = getSyntheticSearchResults(query);
-      if (syntheticResults) {
-        return syntheticResults;
-      } else {
-        formattedResults += 'No results found for this query.\n\n';
-      }
+      formattedResults += 'No results found for this query.\n\n';
     }
     
     return formattedResults;
   } catch (error) {
     console.error('Error performing Google search:', error);
-    
-    // On error, try to generate synthetic search results
-    const syntheticResults = getSyntheticSearchResults(query);
-    if (syntheticResults) {
-      return syntheticResults;
-    }
-    
-    return handleSearchError(query, error);
+    return `Error performing search: ${error.message}\n\nPlease check that your Google Custom Search Engine is correctly configured.`;
   }
 }
 
-// Function to get mock search results for common queries
-function getMockSearchResults(query: string): string | null {
-  // Normalize the query for easier matching
-  const normalizedQuery = query.toLowerCase().trim();
-  
-  // Define some common queries and their mock results
-  if (normalizedQuery.includes('president') && (normalizedQuery.includes('us') || normalizedQuery.includes('united states'))) {
-    return `Search results for "${query}":\n\n` +
-      `1. Joe Biden - Wikipedia\n` +
-      `   https://en.wikipedia.org/wiki/Joe_Biden\n` +
-      `   Joseph Robinette Biden Jr. is an American politician who is the 46th and current president of the United States. A member of the Democratic Party, he served as the 47th vice president from 2009 to 2017 under Barack Obama.\n\n` +
-      `2. President of the United States - The White House\n` +
-      `   https://www.whitehouse.gov/administration/president-biden/\n` +
-      `   Joseph R. Biden, Jr., is the 46th President of the United States, with a term starting January 20, 2021. Prior to becoming president, he served as vice president under President Barack Obama.\n\n` +
-      `3. Current U.S. Political Leaders | USAGov\n` +
-      `   https://www.usa.gov/current-political-leaders\n` +
-      `   Joe Biden is the 46th and current president of the United States. He was sworn into office on January 20, 2021. The president is both the head of state and head of government.\n\n`;
-  }
-  
-  if (normalizedQuery.includes('vice president') && (normalizedQuery.includes('us') || normalizedQuery.includes('united states'))) {
-    return `Search results for "${query}":\n\n` +
-      `1. Kamala Harris - Wikipedia\n` +
-      `   https://en.wikipedia.org/wiki/Kamala_Harris\n` +
-      `   Kamala Devi Harris is an American politician and attorney who is the 49th and current vice president of the United States. She is the first female vice president, the highest-ranking female official in U.S. history, and the first African American and first Asian American vice president.\n\n` +
-      `2. Vice President Kamala Harris | The White House\n` +
-      `   https://www.whitehouse.gov/administration/vice-president-harris/\n` +
-      `   Kamala D. Harris is the Vice President of the United States of America. She was elected Vice President after a lifetime of public service, having been elected District Attorney of San Francisco, California Attorney General, and United States Senator.\n\n` +
-      `3. Current U.S. Political Leaders | USAGov\n` +
-      `   https://www.usa.gov/current-political-leaders\n` +
-      `   Kamala Harris is the 49th and current vice president of the United States. She was sworn into office on January 20, 2021.\n\n`;
-  }
-  
-  if (normalizedQuery.includes('tesla') && normalizedQuery.includes('stock')) {
-    // For stock prices, include the current date to indicate fresh data
-    const today = new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
-    return `Search results for "${query}":\n\n` +
-      `1. Tesla, Inc. (TSLA) Stock Price, News, Quote | Nasdaq\n` +
-      `   https://www.nasdaq.com/market-activity/stocks/tsla\n` +
-      `   Latest Tesla Inc (TSLA) stock price information as of ${today}. Tesla stock closed at $177.80, up 2.45% from yesterday. Market capitalization of approximately $566.34 billion.\n\n` +
-      `2. Tesla (TSLA) Stock Price | MarketWatch\n` +
-      `   https://www.marketwatch.com/investing/stock/tsla\n` +
-      `   TSLA | Complete Tesla Inc. stock news by MarketWatch. View real-time stock prices and stock quotes for a full financial overview. Current price: $177.80 as of latest market close.\n\n` +
-      `3. Tesla (TSLA) Stock Price, News & Info | The Wall Street Journal\n` +
-      `   https://www.wsj.com/market-data/quotes/TSLA\n` +
-      `   Tesla Inc. TSLA (U.S.: Nasdaq) has been showing improved performance in recent trading sessions. 52 Week Range: $138.80 - $299.29. Market Cap: $566.34B.\n\n`;
-  }
-  
-  // Add more common queries as needed
-  
-  // Return null if we don't have mock results for this query
-  return null;
-}
-
-// Function to generate synthetic search results when real search fails
-function getSyntheticSearchResults(query: string): string | null {
-  // Normalize the query
-  const normalizedQuery = query.toLowerCase().trim();
-  
-  // Try to extract key entities or concepts from the query
-  // This is a very simplified approach - in a real system you'd use NLP
-  const entities = extractEntitiesFromQuery(normalizedQuery);
-  
-  if (entities.length === 0) {
-    return null;
-  }
-  
-  // Generate synthetic results based on the entities
-  let formattedResults = `Search results for "${query}":\n\n`;
-  let hasResults = false;
-  
-  // Add a result for each entity
-  entities.forEach((entity, index) => {
-    if (entity.name && entity.type) {
-      hasResults = true;
-      formattedResults += `${index + 1}. ${capitalizeFirstLetter(entity.name)} - ${entity.type}\n`;
-      formattedResults += `   https://example.com/search?q=${encodeURIComponent(entity.name)}\n`;
-      formattedResults += `   This is a search result related to ${entity.name}. Please note that this is a synthetic result as the actual search service is currently limited.\n\n`;
-    }
-  });
-  
-  if (!hasResults) {
-    return null;
-  }
-  
-  // Add a note that these are synthetic results
-  formattedResults += `Note: These are synthetic search results. For production use, please configure a proper Google Custom Search Engine in the Google Cloud Console.\n\n`;
-  
-  return formattedResults;
-}
-
-// Helper function to extract entities from a query
-function extractEntitiesFromQuery(query: string): Array<{name: string, type: string}> {
-  const entities: Array<{name: string, type: string}> = [];
-  
-  // Check for common entity types
-  // Countries
-  const countries = ['united states', 'usa', 'us', 'uk', 'united kingdom', 'canada', 'australia', 'france', 'germany', 'japan', 'china', 'russia'];
-  countries.forEach(country => {
-    if (query.includes(country)) {
-      entities.push({name: country, type: 'Country'});
-    }
-  });
-  
-  // People types
-  const peopleTypes = ['president', 'ceo', 'director', 'actor', 'actress', 'singer', 'author', 'writer', 'scientist', 'politician'];
-  peopleTypes.forEach(type => {
-    if (query.includes(type)) {
-      entities.push({name: type, type: 'Person Role'});
-    }
-  });
-  
-  // Companies
-  const companies = ['apple', 'google', 'microsoft', 'amazon', 'facebook', 'tesla', 'twitter', 'netflix', 'uber', 'airbnb'];
-  companies.forEach(company => {
-    if (query.includes(company)) {
-      entities.push({name: company, type: 'Company'});
-    }
-  });
-  
-  // Financial terms
-  const financialTerms = ['stock', 'price', 'market', 'shares', 'dividend', 'earnings', 'revenue', 'profit', 'loss'];
-  financialTerms.forEach(term => {
-    if (query.includes(term)) {
-      entities.push({name: term, type: 'Financial Term'});
-    }
-  });
-  
-  // Extract other potential entities (any capitalized words or phrases)
-  const words = query.split(' ');
-  let currentEntity = '';
-  
-  words.forEach(word => {
-    // If the word starts with a capital letter, it might be an entity
-    if (word.length > 0 && word[0] === word[0].toUpperCase() && isNaN(parseInt(word[0]))) {
-      if (currentEntity.length > 0) {
-        currentEntity += ' ' + word;
-      } else {
-        currentEntity = word;
-      }
-    } else if (currentEntity.length > 0) {
-      // End of entity
-      entities.push({name: currentEntity.toLowerCase(), type: 'Entity'});
-      currentEntity = '';
-    }
-  });
-  
-  // Add the last entity if there is one
-  if (currentEntity.length > 0) {
-    entities.push({name: currentEntity.toLowerCase(), type: 'Entity'});
-  }
-  
-  // If we still have no entities, use the whole query
-  if (entities.length === 0 && query.length > 0) {
-    entities.push({name: query, type: 'Search Query'});
-  }
-  
-  return entities;
-}
-
-// Helper function to capitalize the first letter of a string
-function capitalizeFirstLetter(string: string): string {
-  return string.charAt(0).toUpperCase() + string.slice(1);
-}
-
-// Simple error handler for search failures
+// Simple error handler for search failures (remaining for backward compatibility)
 function handleSearchError(query: string, error: any): string {
   return `Unable to perform search for "${query}": ${error?.message || 'Unknown error'}\n\n` +
     `This could be due to:\n` +
