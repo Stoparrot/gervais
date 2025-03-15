@@ -117,20 +117,9 @@ export const googleModels = [
     supportsThinking: true,
     supportsMultimodal: true, // For accepting images as input
     supportsImageGeneration: true, // Also supports generating images
-  },
-  {
-    id: 'gemini-2.0-flash',
-    name: 'Gemini 2.0 Flash (Search)',
-    provider: 'google' as const,
-    description: 'Fast model with web search capabilities',
-    isLocal: false,
-    maxTokens: 32768,
-    supportsStreaming: true,
-    supportsFiles: true,
-    supportsThinking: true,
-    supportsMultimodal: true,
-    supportsImageGeneration: false, // Regular model doesn't support image generation
   }
+  // Removed the "Gemini 2.0 Flash (Search)" option as requested
+  // The search functionality will still work by swapping models internally
 ];
 
 // Hard-coded Google Search API key
