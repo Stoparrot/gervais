@@ -11,9 +11,9 @@ const config = {
 			precompress: false,
 			strict: true
 		}),
-		// Remove base path for Vercel deployment
+		// Add base path for GitHub Pages
 		paths: {
-			base: ''
+			base: process.env.NODE_ENV === 'production' ? '/gervais' : ''
 		}
 	}
 };
